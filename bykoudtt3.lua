@@ -48,7 +48,7 @@ ESPGroup:AddToggle("ESP_Enabled", {
 Toggles.ESP_Enabled:OnChanged(function()
     _G.ESP_Enabled = Toggles.ESP_Enabled.Value
     if _G.ESP_Enabled then
-        coroutine.wrap(mainESPLoop)() -- ✅ CORRIGIDO AQUI
+        task.spawn(function() mainESPLoop() end) -- ✅ CORRIGIDO AQUI
     else
         clearAllESP()
     end
@@ -61,7 +61,7 @@ ESPGroup:AddButton({
     Text = "▶ ATIVAR ESP (Forçado)",
     Func = function()
         _G.ESP_Enabled = true
-        coroutine.wrap(mainESPLoop)() -- ✅ CORRIGIDO AQUI
+        task.spawn(function() mainESPLoop() end) -- ✅ CORRIGIDO AQUI
         Library:Notify({
             Title = "ESP Ativado",
             Description = "Sistema iniciado com sucesso!",
