@@ -1,3 +1,6 @@
+-- Made by samet
+-- Customer has done AI modifications on this UI, do not blame me for the code.
+
 if getgenv().Library then
     getgenv().Library:Unload()
 end
@@ -4146,7 +4149,6 @@ function Library.Sections:AddLabel(TextOrData)
 end
 
 getgenv().Library = Library
-return Library
 
 -- =============================================================================
 -- QA VISUALS - UI BRIDGE
@@ -4167,6 +4169,7 @@ local MaxEspDistance = 5000
 
 -- Use K as the menu key, matching the original project UI.
 Library.MenuKeybind = tostring(Enum.KeyCode.K)
+
 
 local Window = Library:CreateWindow({
     Name = "THE WALKING DEAD 3",
