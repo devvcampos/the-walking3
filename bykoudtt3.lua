@@ -1,5 +1,5 @@
 -- =============================================================================
--- NEXUS EXECUTOR - ADVANCED TOOLS
+-- NEXUS EXECUTOR - ADVANCED TOOLS (UNIVERSAL)
 -- Cole no seu executor e execute
 -- =============================================================================
 
@@ -76,10 +76,6 @@ local Config = {
     AIM_Smooth = 5,
     AIM_Part = "Head",
     AIM_TeamCheck = true,
-    
-    -- Visual
-    VIS_Chams = false,
-    VIS_Crosshair = true,
 }
 
 -- =============================================================================
@@ -110,18 +106,29 @@ local UI = {
 }
 
 -- =============================================================================
--- 6. GUI PRINCIPAL
+-- 6. GUI PRINCIPAL (CORRIGIDO)
 -- =============================================================================
 
 local GuiParent = LocalPlayer:WaitForChild("PlayerGui")
 local MainGui = Instance.new("ScreenGui")
-MainGui.Name = Random.new():NextInteger(10000, 99999) .. "Nexus"
+MainGui.Name = "Nexus_" .. tostring(Random.new():NextInteger(10000, 99999))
 MainGui.ResetOnSpawn = false
 MainGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 MainGui.IgnoreGuiInset = true
-syn.protect_gui(MainGui) -- Proteger de outros scripts
 
-MainGui.Parent = GuiParent
+-- Proteção universal (funciona em qualquer executor)
+pcall(function()
+    if syn then syn.protect_gui(MainGui) end
+end)
+pcall(function()
+    if get_hidden_gui then
+        MainGui.Parent = get_hidden_gui()
+    elseif gethui then
+        MainGui.Parent = gethui()
+    else
+        MainGui.Parent = GuiParent
+    end
+end)
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 580, 0, 460)
@@ -170,7 +177,7 @@ local TitleText = Instance.new("TextLabel")
 TitleText.Size = UDim2.new(0, 200, 0, 20)
 TitleText.Position = UDim2.new(0, 16, 0, 10)
 TitleText.BackgroundTransparency = 1
-TitleText.Text = "NEXUS EXECUTOR"
+TitleText.Text = "NEXUS"
 TitleText.TextColor3 = UI.Text
 TitleText.TextSize = 18
 TitleText.Font = Enum.Font.GothamBlack
@@ -181,7 +188,7 @@ local SubText = Instance.new("TextLabel")
 SubText.Size = UDim2.new(0, 200, 0, 14)
 SubText.Position = UDim2.new(0, 16, 0, 30)
 SubText.BackgroundTransparency = 1
-SubText.Text = "Advanced Game Tools"
+SubText.Text = "Universal Tools"
 SubText.TextColor3 = UI.TextDim
 SubText.TextSize = 10
 SubText.Font = Enum.Font.Gotham
@@ -486,11 +493,12 @@ local function AddSlider(parent, text, configKey, min, max, unit, order)
 end
 
 -- =============================================================================
--- 10. BUILD VISUALS PAGE
+-- 10. BUILD PAGES
 -- =============================================================================
 
+-- Visuals
 local vo = 0
-Instance.new("Frame", VisualsPage).Size = UDim2.new(1, 0, 0, 6); Instance.new("Frame", VisualsPage).BackgroundTransparency = 1; Instance.new("UIListLayout", VisualsPage)
+Instance.new("Frame", VisualsPage).Size = UDim2.new(1, 0, 0, 6)
 
 AddSection(VisualsPage, "ESP SETTINGS", vo); vo = vo + 1
 AddToggle(VisualsPage, "ESP Master", "ESP_Main", vo); vo = vo + 1
@@ -506,10 +514,7 @@ AddToggle(VisualsPage, "2D Boxes", "ESP_Boxes", vo); vo = vo + 1
 AddToggle(VisualsPage, "Tracer Lines", "ESP_Lines", vo); vo = vo + 1
 AddToggle(VisualsPage, "Head Dot", "ESP_Dot", vo); vo = vo + 1
 
--- =============================================================================
--- 11. BUILD AIMBOT PAGE
--- =============================================================================
-
+-- Aimbot
 local ao = 0
 Instance.new("Frame", AimbotPage).Size = UDim2.new(1, 0, 0, 6)
 
@@ -519,10 +524,7 @@ AddSlider(AimbotPage, "FOV", "AIM_FOV", 50, 500, "px", ao); ao = ao + 1
 AddSlider(AimbotPage, "Smoothness", "AIM_Smooth", 1, 20, "", ao); ao = ao + 1
 AddToggle(AimbotPage, "Team Check", "AIM_TeamCheck", ao); ao = ao + 1
 
--- =============================================================================
--- 12. BUILD TELEPORT PAGE
--- =============================================================================
-
+-- Teleport
 local to = 0
 Instance.new("Frame", TeleportPage).Size = UDim2.new(1, 0, 0, 6)
 
@@ -695,8 +697,8 @@ RunService.RenderStepped:Connect(function()
                                 local h = c:FindFirstChild("Head")
                                 if h then local hp2 = Camera:WorldToViewportPoint(h.Position); d.Dot.Position = Vector2.new(hp2.X, hp2.Y); d.Dot.Visible = true end
                             else d.Dot.Visible = false end
-                        else if ESP[p] then pcall(function() ESP[p].BoxOutline.Visible = false end) end end
-                    else if ESP[p] then pcall(function() ESP[p].BoxOutline.Visible = false end) end end
+                        end
+                    end
                 end
             end
         end
@@ -715,8 +717,6 @@ local function GetClosestPlayer()
     
     local c = LocalPlayer.Character
     if not c then return nil end
-    local hrp = c:FindFirstChild("HumanoidRootPart")
-    if not hrp then return nil end
     
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= LocalPlayer then
@@ -762,5 +762,3 @@ end)
 Players.PlayerRemoving:Connect(function(p)
     if ESP[p] then pcall(function() ESP[p].BoxOutline:Remove() end); ESP[p] = nil end
 end)
-
-oldPrint("Nexus Executor loaded successfully!")
