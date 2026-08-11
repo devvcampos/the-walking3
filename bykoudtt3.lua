@@ -1,5 +1,5 @@
 -- ============================================================
--- OBSIDIAN ULTRA - CORRIGIDO PARA SUA ESTRUTURA DE PASTAS
+-- OBSIDIAN ULTRA - CORREÇÃO DE SPAWN (VERSÃO FINAL)
 -- ============================================================
 
 local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
@@ -12,7 +12,7 @@ local Toggles = Library.Toggles
 
 local Window = Library:CreateWindow({
     Title = "Obsidian Dev Tools",
-    Footer = "v3.3 - Estrutura Corrigida",
+    Footer = "v3.5 - Corretor de Spawn",
     Icon = 95816097006870,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -21,21 +21,57 @@ local Window = Library:CreateWindow({
 local Tabs = {
     Main = Window:AddTab("Main", "user"),
     ESP = Window:AddTab("ESP", "eye"),
-    Misc = Window:AddTab("Misc", "settings"),
     ["UI Settings"] = Window:AddTab("UI Settings", "settings"),
 }
 
+-- ============================================================
+-- CONFIGURAÇÃO DO ESP
+-- ============================================================
 local ESPGroup = Tabs.ESP:AddLeftGroupbox("ESP Configuration", "eye")
 
+_G.ESP_Enabled = false
+_G.ESP_Box = true
+_G.ESP_Line = true
+_G.ESP_Name = true
+_G.ESP_Distance = true
+_G.ESP_Health = true
+_G.ESP_MaxDistance = 500
+_G.ESP_BoxSize = 4
+_G.ESP_Color = Color3.new(1, 0, 0)
+
+-- Toggle Principal (corrigido)
 ESPGroup:AddToggle("ESP_Enabled", {
-    Text = "Enable ESP (Players Only)",
+    Text = "Enable ESP",
     Default = false,
-    Tooltip = "Ativa o ESP para jogadores (ignora zumbis/bots)",
+    Tooltip = "Ativa o sistema ESP",
 })
 Toggles.ESP_Enabled:OnChanged(function()
     _G.ESP_Enabled = Toggles.ESP_Enabled.Value
-    if not _G.ESP_Enabled then clearAllESP() end
+    if _G.ESP_Enabled then
+        coroutine.wrap(mainESPLoop)() -- ✅ CORRIGIDO AQUI
+    else
+        clearAllESP()
+    end
 end)
+
+ESPGroup:AddDivider()
+
+-- Botão de Ativação Forçada (corrigido)
+ESPGroup:AddButton({
+    Text = "▶ ATIVAR ESP (Forçado)",
+    Func = function()
+        _G.ESP_Enabled = true
+        coroutine.wrap(mainESPLoop)() -- ✅ CORRIGIDO AQUI
+        Library:Notify({
+            Title = "ESP Ativado",
+            Description = "Sistema iniciado com sucesso!",
+            Time = 3,
+        })
+    end,
+    Tooltip = "Use este botão se o Toggle não funcionar",
+})
+
+ESPGroup:AddDivider()
 
 ESPGroup:AddToggle("ESP_Box", {
     Text = "Box ESP (ViewportFrame)",
@@ -71,7 +107,7 @@ ESPGroup:AddSlider("ESP_MaxDistance", {
     Text = "Max Distance",
     Default = 500,
     Min = 50,
-    Max = 100000,
+    Max = 10000,
     Rounding = 0,
     Suffix = " studs",
 })
@@ -101,16 +137,6 @@ Options.ESP_Color:OnChanged(function() _G.ESP_Color = Options.ESP_Color.Value en
 local ESP_Objects = {}
 local ESP_GUI = nil
 local espLoopRunning = false
-
-_G.ESP_Enabled = false
-_G.ESP_Box = true
-_G.ESP_Line = true
-_G.ESP_Name = true
-_G.ESP_Distance = true
-_G.ESP_Health = true
-_G.ESP_MaxDistance = 500
-_G.ESP_BoxSize = 4
-_G.ESP_Color = Color3.new(1, 0, 0)
 
 local function createSecureGUI()
     if ESP_GUI then return ESP_GUI end
@@ -226,15 +252,12 @@ local function createESPForPlayer(player)
     return espData
 end
 
--- ⚠️ ESSA É A PARTE QUE EU CORRIGI PARA VOCÊ
 local function updateESPForPlayer(player, espData)
     if not espData or not _G.ESP_Enabled then return end
     
     local character = player.Character
     if not character then return end
 
-    -- CORREÇÃO AQUI: Usamos FindFirstChild em toda a árvore do personagem
-    -- Isso garante que ele ache o HumanoidRootPart mesmo dentro da pasta "CharacterItems"
     local rootPart = character:FindFirstChild("HumanoidRootPart", true) 
     local head = character:FindFirstChild("Head", true)
     
@@ -269,7 +292,6 @@ local function updateESPForPlayer(player, espData)
     
     -- BOX
     if _G.ESP_Box then
-        local boxSize = _G.ESP_BoxSize * 3
         local topPos = camera:WorldToViewportPoint(head and head.Position or rootPart.Position + Vector3.new(0, 3, 0))
         local bottomPos = camera:WorldToViewportPoint(rootPart.Position - Vector3.new(0, 3, 0))
         
@@ -346,8 +368,13 @@ local function updateESPForPlayer(player, espData)
 end
 
 local function mainESPLoop()
-    if espLoopRunning then return end
+    if espLoopRunning then 
+        print("⚠️ Loop do ESP já está rodando!")
+        return 
+    end
     espLoopRunning = true
+    
+    print("🚀 Loop do ESP INICIADO com sucesso!")
     
     while _G.ESP_Enabled do
         task.wait(0.03)
@@ -371,6 +398,7 @@ local function mainESPLoop()
         end
     end
     
+    print("🛑 Loop do ESP encerrado.")
     espLoopRunning = false
 end
 
@@ -383,14 +411,6 @@ local function clearAllESP()
     end
     ESP_GUI = nil
 end
-
-Toggles.ESP_Enabled:OnChanged(function()
-    if _G.ESP_Enabled then
-        task.spawn(mainESPLoop)
-    else
-        clearAllESP()
-    end
-end)
 
 -- ============================================================
 -- UI SETTINGS E MANAGERS
@@ -445,7 +465,9 @@ ThemeManager:ApplyToTab(Tabs["UI Settings"])
 SaveManager:LoadAutoloadConfig()
 
 Library:Notify({
-    Title = "Obsidian ESP - Corrigido para CharacterItems",
-    Description = "✅ Agora encontra HumanoidRootPart dentro de pastas\n✅ Apenas Players\n✅ Até 10.000 studs",
+    Title = "Obsidian ESP - Corrigido",
+    Description = "✅ Erro de spawn consertado. Clique em ATIVAR ESP.",
     Time = 6,
 })
+
+print("✅ Script carregado. Vá na aba ESP e clique em 'ATIVAR ESP'.")
