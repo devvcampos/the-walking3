@@ -1,428 +1,800 @@
-\-- Made by samet & AI Visual Overhaul
-\-- UI Library Modificada e Otimizada
+-- =============================================================================
+-- QA VISUALS - ESP DE TESTE
+-- LocalScript
+-- Coloque em StarterPlayer > StarterPlayerScripts
+-- =============================================================================
 
-if getgenv().Library then
-    getgenv().Library\:Unload()
-end
+-- =============================================================================
+-- 1. SERVIÇOS
+-- =============================================================================
 
-local Library do
-
-local Workspace = game\:GetService("Workspace")
-
-local UserInputService = game\:GetService("UserInputService")
-
-local Players = game\:GetService("Players")
-
-local HttpService = game\:GetService("HttpService")
-
-local RunService = game\:GetService("RunService")
-
-local CoreGui = cloneref and cloneref(game\:GetService("CoreGui")) or game\:GetService("CoreGui")
-
-local TweenService = game\:GetService("TweenService")
-
-local Lighting = game\:GetService("Lighting")
-
-gethui = gethui or function()
-return CoreGui
-end
-
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 
 local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
 
-local Camera = Workspace.CurrentCamera
+-- =============================================================================
+-- 2. CONFIGURAÇÕES
+-- =============================================================================
 
-local Mouse = LocalPlayer\:GetMouse()
+local EspPlayersEnabled = true
+local MaxEspDistance = 5000
 
+-- =============================================================================
+-- 3. GUI
+-- =============================================================================
 
-local FromRGB = Color3.fromRGB
+local GuiParent = LocalPlayer:WaitForChild("PlayerGui")
 
-local FromHSV = Color3.fromHSV
+local MenuGui = Instance.new("ScreenGui")
+MenuGui.Name = "QA_Visuals_Interface"
+MenuGui.ResetOnSpawn = false
+MenuGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+MenuGui.Parent = GuiParent
 
-local FromHex = Color3.fromHex
+-- =============================================================================
+-- 4. JANELA PRINCIPAL
+-- =============================================================================
 
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 520, 0, 340)
+MainFrame.Position = UDim2.new(0.5, -260, 0.5, -170)
+MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = MenuGui
 
-local RGBSequence = ColorSequence.new
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 10)
+MainCorner.Parent = MainFrame
 
-local RGBSequenceKeypoint = ColorSequenceKeypoint.new
+-- =============================================================================
+-- 5. TOP BAR
+-- =============================================================================
 
-local NumSequence = NumberSequence.new
+local TopBar = Instance.new("Frame")
+TopBar.Size = UDim2.new(1, 0, 0, 50)
+TopBar.BackgroundColor3 = Color3.fromRGB(24, 24, 24)
+TopBar.BorderSizePixel = 0
+TopBar.Parent = MainFrame
 
-local NumSequenceKeypoint = NumberSequenceKeypoint.new
+local TopCorner = Instance.new("UICorner")
+TopCorner.CornerRadius = UDim.new(0, 10)
+TopCorner.Parent = TopBar
 
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -30, 1, 0)
+Title.Position = UDim2.new(0, 20, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "THE WALKING DEAD 3 — QA VISUALS"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 14
+Title.Font = Enum.Font.GothamBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = TopBar
 
-local UDim2New = UDim2.new
+local AccLine = Instance.new("Frame")
+AccLine.Size = UDim2.new(1, 0, 0, 2)
+AccLine.Position = UDim2.new(0, 0, 0, 48)
+AccLine.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+AccLine.BorderSizePixel = 0
+AccLine.Parent = TopBar
 
-local UDimNew = UDim.new
+-- =============================================================================
+-- 6. PAINEL LATERAL
+-- =============================================================================
 
-local UDim2FromOffset = UDim2.fromOffset
+local SidePanel = Instance.new("Frame")
+SidePanel.Size = UDim2.new(0, 150, 1, -50)
+SidePanel.Position = UDim2.new(0, 0, 0, 50)
+SidePanel.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
+SidePanel.BorderSizePixel = 0
+SidePanel.Parent = MainFrame
 
-local Vector2New = Vector2.new
+local ContentContainer = Instance.new("Frame")
+ContentContainer.Size = UDim2.new(1, -150, 1, -50)
+ContentContainer.Position = UDim2.new(0, 150, 0, 50)
+ContentContainer.BackgroundTransparency = 1
+ContentContainer.Parent = MainFrame
 
-local Vector3New = Vector3.new
+local function addTab(name, index, isActive)
 
+	local tabBtn = Instance.new("TextButton")
 
-local MathClamp = math.clamp
+	tabBtn.Size = UDim2.new(1, -20, 0, 36)
+	tabBtn.Position = UDim2.new(0, 10, 0, 15 + (index * 42))
 
-local MathFloor = math.floor
+	tabBtn.BackgroundColor3 =
+		isActive
+		and Color3.fromRGB(30, 30, 30)
+		or Color3.fromRGB(26, 26, 26)
 
-local MathAbs = math.abs
+	tabBtn.BorderSizePixel = 0
+	tabBtn.Font = Enum.Font.SourceSansBold
+	tabBtn.TextSize = 13
 
-local MathSin = math.sin
+	tabBtn.TextColor3 =
+		isActive
+		and Color3.fromRGB(255, 255, 255)
+		or Color3.fromRGB(140, 140, 140)
 
+	tabBtn.Text = "  " .. name
+	tabBtn.TextXAlignment = Enum.TextXAlignment.Left
+	tabBtn.Parent = SidePanel
 
-local TableInsert = table.insert
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 6)
+	corner.Parent = tabBtn
 
-local TableFind = table.find
+	if isActive then
 
-local TableRemove = table.remove
+		local indicator = Instance.new("Frame")
 
-local TableConcat = table.concat
+		indicator.Size = UDim2.new(0, 3, 0, 16)
+		indicator.Position = UDim2.new(0, 0, 0.5, -8)
+		indicator.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+		indicator.BorderSizePixel = 0
+		indicator.Parent = tabBtn
 
-local TableClone = table.clone
+	end
 
-local TableUnpack = table.unpack
-
-
-local StringFormat = string.format
-
-local StringFind = string.find
-
-local StringGSub = string.gsub
-
-local StringLower = string.lower
-
-local StringLen = string.len
-
-
-local InstanceNew = Instance.new
-
-local RectNew = Rect.new
-
-Library = {
-Theme =  { },
-MenuKeybind = tostring(Enum.KeyCode.K),
-Flags = { },
-Tween = {
-Time = 0.2,
-Style = Enum.EasingStyle.Circular,
-Direction = Enum.EasingDirection.Out
-},
-FadeSpeed = 0.2,
-Folders = {
-Directory = "homxiide",
-Configs = "homxiide/Configs",
-Assets = "homxiide/Assets",
-},
-Pages = { },
-Sections = { },
-Connections = { },
-Threads = { },
-ThemeMap = { },
-ThemeItems = { },
-OpenFrames = { },
-SetFlags = { },
-UnnamedConnections = 0,
-UnnamedFlags = 0,
-Holder = nil,
-NotifHolder = nil,
-UnusedHolder = nil,
-Font = nil
-}
-
-Library.\_\_index = Library
-Library.Sections.\_\_index = Library.Sections
-Library.Pages.\_\_index = Library.Pages
-
-
-local Keys = {
-["Unknown"] = "Unknown", ["Backspace"] = "Back", ["Tab"] = "Tab", ["Clear"] = "Clear",
-["Return"] = "Return", ["Pause"] = "Pause", ["Escape"] = "Escape", ["Space"] = "Space",
-["RightShift"] = "RightShift", ["LeftShift"] = "LeftShift", ["RightControl"] = "RightControl",
-["LeftControl"] = "LeftControl", ["LeftAlt"] = "LeftAlt", ["RightAlt"] = "RightAlt"
-}
-
--- TEMA SOMBRIO PREMIUM ATUALIZADO (Visual muito mais limpo e elegante)
-
-local Themes = {
-["Preset"] = {
-["Background"] = FromRGB(13, 14, 17),    -- Fundo Dark Premium
-["Outline"] = FromRGB(32, 34, 42),       -- Bordas Sutis
-["Inline"] = FromRGB(19, 21, 26),        -- Containers Internos
-["Accent"] = FromRGB(0, 180, 216),       -- Azul Elétrico Moderno
-["Text"] = FromRGB(245, 247, 250),       -- Texto Branco Limpo
-["Element"] = FromRGB(25, 28, 36)        -- Botões e Sliders
-}
-}
-
-Library.Theme = TableClone(Themes["Preset"])
-
-for Index, Value in Library.Folders do
-    if not isfolder(Value) then makefolder(Value) end
+	return tabBtn
 end
 
+addTab("ESP Sobreviventes", 0, true)
+addTab("ESP Infectados", 1, false)
+addTab("ESP Suprimentos", 2, false)
 
-local Tween = { } do
-Tween.\_\_index = Tween
-Tween.Create = function(*self*, *Item*, *Info*, *Goal*, *IsRawItem*)
-Item = IsRawItem and Item or Item.Instance
-Info = Info or TweenInfo.new(Library.Tween.Time, Library.Tween.Style, Library.Tween.Direction)
+-- =============================================================================
+-- 7. CARD DE CONFIGURAÇÕES
+-- =============================================================================
 
-local NewTween = { Tween = TweenService\:Create(Item, Info, Goal), Info = Info, Goal = Goal, Item = Item }
-NewTween.Tween\:Play()
-setmetatable(NewTween, Tween)
-return NewTween
+local CardFrame = Instance.new("Frame")
+CardFrame.Size = UDim2.new(1, -30, 1, -30)
+CardFrame.Position = UDim2.new(0, 15, 0, 15)
+CardFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 24)
+CardFrame.BorderSizePixel = 0
+CardFrame.Parent = ContentContainer
+
+local CardCorner = Instance.new("UICorner")
+CardCorner.CornerRadius = UDim.new(0, 8)
+CardCorner.Parent = CardFrame
+
+-- =============================================================================
+-- 8. TOGGLE
+-- =============================================================================
+
+local ToggleLabel = Instance.new("TextLabel")
+ToggleLabel.Size = UDim2.new(0, 200, 0, 40)
+ToggleLabel.Position = UDim2.new(0, 20, 0, 20)
+ToggleLabel.BackgroundTransparency = 1
+ToggleLabel.Text = "Rastrear Jogadores"
+ToggleLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+ToggleLabel.TextSize = 14
+ToggleLabel.Font = Enum.Font.SourceSansBold
+ToggleLabel.TextXAlignment = Enum.TextXAlignment.Left
+ToggleLabel.Parent = CardFrame
+
+local ToggleBG = Instance.new("TextButton")
+ToggleBG.Size = UDim2.new(0, 45, 0, 22)
+ToggleBG.Position = UDim2.new(1, -65, 0, 29)
+ToggleBG.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+ToggleBG.BorderSizePixel = 0
+ToggleBG.Text = ""
+ToggleBG.Parent = CardFrame
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(1, 0)
+ToggleCorner.Parent = ToggleBG
+
+local ToggleBall = Instance.new("Frame")
+ToggleBall.Size = UDim2.new(0, 16, 0, 16)
+ToggleBall.Position = UDim2.new(0, 25, 0.5, -8)
+ToggleBall.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBall.BorderSizePixel = 0
+ToggleBall.Parent = ToggleBG
+
+local ToggleBallCorner = Instance.new("UICorner")
+ToggleBallCorner.CornerRadius = UDim.new(1, 0)
+ToggleBallCorner.Parent = ToggleBall
+
+-- =============================================================================
+-- 9. DISTÂNCIA
+-- =============================================================================
+
+local SliderLabel = Instance.new("TextLabel")
+SliderLabel.Size = UDim2.new(0, 200, 0, 40)
+SliderLabel.Position = UDim2.new(0, 20, 0, 80)
+SliderLabel.BackgroundTransparency = 1
+SliderLabel.Text = "Distância de Renderização"
+SliderLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+SliderLabel.TextSize = 14
+SliderLabel.Font = Enum.Font.SourceSansBold
+SliderLabel.TextXAlignment = Enum.TextXAlignment.Left
+SliderLabel.Parent = CardFrame
+
+local SliderBtn = Instance.new("TextButton")
+SliderBtn.Size = UDim2.new(1, -40, 0, 36)
+SliderBtn.Position = UDim2.new(0, 20, 0, 120)
+SliderBtn.BackgroundColor3 = Color3.fromRGB(32, 32, 32)
+SliderBtn.BorderSizePixel = 0
+SliderBtn.Font = Enum.Font.SourceSansBold
+SliderBtn.TextSize = 13
+SliderBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SliderBtn.Text = "Alcance Máximo: 5000m"
+SliderBtn.Parent = CardFrame
+
+local SliderCorner = Instance.new("UICorner")
+SliderCorner.CornerRadius = UDim.new(0, 6)
+SliderCorner.Parent = SliderBtn
+
+-- =============================================================================
+-- 10. FOOTER
+-- =============================================================================
+
+local Footer = Instance.new("TextLabel")
+Footer.Size = UDim2.new(1, 0, 0, 30)
+Footer.Position = UDim2.new(0, 0, 1, -30)
+Footer.BackgroundTransparency = 1
+Footer.Text = "Pressione [ K ] para ocultar a interface"
+Footer.TextColor3 = Color3.fromRGB(90, 90, 90)
+Footer.TextSize = 12
+Footer.Font = Enum.Font.SourceSansItalic
+Footer.Parent = CardFrame
+
+-- =============================================================================
+-- 11. ESP GUI
+-- =============================================================================
+
+local EspGui = Instance.new("ScreenGui")
+EspGui.Name = "QA_ESP_Render"
+EspGui.ResetOnSpawn = false
+EspGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+EspGui.Parent = GuiParent
+
+local espElements = {}
+
+-- =============================================================================
+-- 12. CRIAR ESP
+-- =============================================================================
+
+local function createSafeESP(player)
+
+	local elements = {}
+
+	local holder = Instance.new("Folder")
+	holder.Name = "ESP_" .. player.UserId
+	holder.Parent = EspGui
+
+	-- BOX
+	local box = Instance.new("Frame")
+
+	box.Name = "Box"
+	box.BackgroundTransparency = 1
+	box.BorderColor3 = Color3.fromRGB(180, 40, 40)
+	box.BorderSizePixel = 1
+	box.Visible = false
+	box.Parent = holder
+
+	elements.Box = box
+
+	-- NOME
+	local nameLabel = Instance.new("TextLabel")
+
+	nameLabel.Name = "Name"
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	nameLabel.TextSize = 12
+	nameLabel.Font = Enum.Font.SourceSansBold
+	nameLabel.TextStrokeTransparency = 0
+	nameLabel.TextXAlignment = Enum.TextXAlignment.Center
+	nameLabel.Visible = false
+	nameLabel.Parent = holder
+
+	elements.Name = nameLabel
+
+	-- DISTÂNCIA
+	local distLabel = Instance.new("TextLabel")
+
+	distLabel.Name = "Distance"
+	distLabel.BackgroundTransparency = 1
+	distLabel.TextColor3 = Color3.fromRGB(240, 200, 50)
+	distLabel.TextSize = 11
+	distLabel.Font = Enum.Font.SourceSansBold
+	distLabel.TextStrokeTransparency = 0
+	distLabel.TextXAlignment = Enum.TextXAlignment.Center
+	distLabel.Visible = false
+	distLabel.Parent = holder
+
+	elements.Distance = distLabel
+
+	-- CONTORNO DA VIDA
+	local barOutline = Instance.new("Frame")
+
+	barOutline.Name = "HealthOutline"
+	barOutline.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	barOutline.BorderSizePixel = 0
+	barOutline.Visible = false
+	barOutline.Parent = holder
+
+	elements.HealthOutline = barOutline
+
+	-- VIDA
+	local bar = Instance.new("Frame")
+
+	bar.Name = "HealthBar"
+	bar.BorderSizePixel = 0
+	bar.Visible = false
+	bar.Parent = holder
+
+	elements.HealthBar = bar
+
+	elements.Holder = holder
+
+	espElements[player] = elements
 end
 
-Tween.GetProperty = function(*self*, *Item*)
-Item = Item or *self*.Item
-if Item\:IsA("Frame") then return { "BackgroundTransparency" }
-elseif Item\:IsA("TextLabel") or Item\:IsA("TextButton") then return { "TextTransparency", "BackgroundTransparency" }
-elseif Item\:IsA("ImageLabel") or Item\:IsA("ImageButton") then return { "BackgroundTransparency", "ImageTransparency" }
-elseif Item\:IsA("ScrollingFrame") then return { "BackgroundTransparency", "ScrollBarImageTransparency" }
-elseif Item\:IsA("TextBox") then return { "TextTransparency", "BackgroundTransparency" }
-elseif Item\:IsA("UIStroke") then return { "Transparency" } end
+-- =============================================================================
+-- 13. REMOVER ESP
+-- =============================================================================
+
+local function removeSafeESP(player)
+
+	local elements = espElements[player]
+
+	if not elements then
+		return
+	end
+
+	if elements.Holder then
+		elements.Holder:Destroy()
+	end
+
+	espElements[player] = nil
 end
 
-Tween.FadeItem = function(*self*, *Item*, *Property*, *Visibility*, *Speed*)
+-- =============================================================================
+-- 14. OCULTAR ESP
+-- =============================================================================
 
-local Item = Item or *self*.Item
+local function hidePlayerESP(elements)
 
-local OldTransparency = Item[Property]
-Item[Property] = Visibility and 1 or OldTransparency
+	if not elements then
+		return
+	end
 
-local NewTween = Tween\:Create(Item, TweenInfo.new(Speed or Library.Tween.Time, Library.Tween.Style, Library.Tween.Direction), {
-[Property] = Visibility and OldTransparency or 1
-}, true)
-Library\:Connect(NewTween.Tween.Completed, function()
-if not Visibility then task.wait() Item[Property] = OldTransparency end
+	if elements.Box then
+		elements.Box.Visible = false
+	end
+
+	if elements.Name then
+		elements.Name.Visible = false
+	end
+
+	if elements.Distance then
+		elements.Distance.Visible = false
+	end
+
+	if elements.HealthOutline then
+		elements.HealthOutline.Visible = false
+	end
+
+	if elements.HealthBar then
+		elements.HealthBar.Visible = false
+	end
+end
+
+local function hideAllActiveESP()
+
+	for _, elements in pairs(espElements) do
+		hidePlayerESP(elements)
+	end
+end
+
+-- =============================================================================
+-- 15. TOGGLE
+-- =============================================================================
+
+ToggleBG.MouseButton1Click:Connect(function()
+
+	EspPlayersEnabled = not EspPlayersEnabled
+
+	if EspPlayersEnabled then
+
+		TweenService:Create(
+			ToggleBG,
+			TweenInfo.new(0.2),
+			{
+				BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+			}
+		):Play()
+
+		TweenService:Create(
+			ToggleBall,
+			TweenInfo.new(0.2),
+			{
+				Position = UDim2.new(0, 25, 0.5, -8)
+			}
+		):Play()
+
+		ToggleLabel.TextColor3 =
+			Color3.fromRGB(220, 220, 220)
+
+	else
+
+		TweenService:Create(
+			ToggleBG,
+			TweenInfo.new(0.2),
+			{
+				BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+			}
+		):Play()
+
+		TweenService:Create(
+			ToggleBall,
+			TweenInfo.new(0.2),
+			{
+				Position = UDim2.new(0, 4, 0.5, -8)
+			}
+		):Play()
+
+		ToggleLabel.TextColor3 =
+			Color3.fromRGB(100, 100, 100)
+
+		hideAllActiveESP()
+	end
 end)
-return NewTween
-end
-end
 
+-- =============================================================================
+-- 16. DISTÂNCIA
+-- =============================================================================
 
-local Instances = { } do
-Instances.\_\_index = Instances
-Instances.Create = function(*self*, *Class*, *Properties*)
+SliderBtn.MouseButton1Click:Connect(function()
 
-local NewItem = { Instance = InstanceNew(Class), Properties = Properties, Class = Class }
-setmetatable(NewItem, Instances)
-for Property, Value in NewItem.Properties do NewItem.Instance[Property] = Value end
-return NewItem
-end
-Instances.AddToTheme = function(*self*, *Properties*)
-if not *self*.Instance then return end
-Library\:AddToTheme(*self*, Properties)
-return *self*
-end
-Instances.ChangeItemTheme = function(*self*, *Properties*)
-if not *self*.Instance then return end
-Library\:ChangeItemTheme(*self*, Properties)
-end
-Instances.Connect = function(*self*, *Event*, *Callback*, *Name*)
-if not *self*.Instance or not *self*.Instance[Event] then return end
-return Library\:Connect(*self*.Instance[Event], Callback, Name)
-end
-Instances.Tween = function(*self*, *Info*, *Goal*)
-if not *self*.Instance then return end
-return Tween\:Create(*self*, Info, Goal)
-end
-Instances.Clean = function(*self*)
-if not *self*.Instance then return end
-*self*.Instance\:Destroy()
-*self* = nil
-end
-Instances.MakeDraggable = function(*self*)
-if not *self*.Instance then return end
+	if MaxEspDistance == 5000 then
 
-local Gui = *self*.Instance
-local Dragging, DragStart, StartPosition = false, nil, nil
+		MaxEspDistance = 1500
 
-local Set = function(*Input*)
+		SliderBtn.Text =
+			"Alcance Limitado: 1500m (Otimizado)"
 
-local DragDelta = Input.Position - DragStart
+	else
 
-local NewX = StartPosition.X.Offset + DragDelta.X
+		MaxEspDistance = 5000
 
-local NewY = StartPosition.Y.Offset + DragDelta.Y
-
-local ScreenSize = Gui.Parent.AbsoluteSize
-
-local GuiSize = Gui.AbsoluteSize
-NewX = MathClamp(NewX, 0, ScreenSize.X - GuiSize.X)
-NewY = MathClamp(NewY, 0, ScreenSize.Y - GuiSize.Y)
-*self*:Tween(TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = UDim2New(0, NewX, 0, NewY)})
-end
-local InputChanged
-*self*:Connect("InputBegan", function(*Input*)
-if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-    Dragging = true
-    DragStart = Input.Position
-    StartPosition = Gui.Position
-    if InputChanged then return end
-    InputChanged = Input.Changed\:Connect(function()
-    if Input.UserInputState == Enum.UserInputState.End then
-        Dragging = false
-        InputChanged\:Disconnect()
-        InputChanged = nil
-    end
+		SliderBtn.Text =
+			"Alcance Máximo: 5000m (Máximo)"
+	end
 end)
-end
+
+-- =============================================================================
+-- 17. TECLA K
+-- =============================================================================
+
+UserInputService.InputBegan:Connect(function(input, processed)
+
+	if processed then
+		return
+	end
+
+	if input.KeyCode == Enum.KeyCode.K then
+		MainFrame.Visible = not MainFrame.Visible
+	end
 end)
-Library\:Connect(UserInputService.InputChanged, function(*Input*)
-if (Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch) and Dragging then
-    Set(Input)
-end
+
+-- =============================================================================
+-- 18. MOTOR ESP
+-- =============================================================================
+
+RunService.RenderStepped:Connect(function()
+
+	if not EspPlayersEnabled then
+		return
+	end
+
+	Camera = workspace.CurrentCamera
+
+	if not Camera then
+		return
+	end
+
+	local playersList = Players:GetPlayers()
+	local cameraPosition = Camera.CFrame.Position
+
+	for i = 1, #playersList do
+
+		local player = playersList[i]
+
+		if player ~= LocalPlayer then
+
+			local character = player.Character
+
+			if character then
+
+				local hrp =
+					character:FindFirstChild("HumanoidRootPart")
+
+				local humanoid =
+					character:FindFirstChildOfClass("Humanoid")
+
+				if hrp
+					and humanoid
+					and hrp:IsA("BasePart")
+					and humanoid:IsA("Humanoid")
+				then
+
+					local currentHealth =
+						humanoid.Health
+
+					if currentHealth > 0 then
+
+						local distance =
+							(cameraPosition - hrp.Position).Magnitude
+
+						if distance <= MaxEspDistance then
+
+							local pos, onScreen =
+								Camera:WorldToViewportPoint(
+									hrp.Position
+								)
+
+							if onScreen and pos.Z > 0 then
+
+								if not espElements[player] then
+									createSafeESP(player)
+								end
+
+								local elements =
+									espElements[player]
+
+								-- =====================================================
+								-- MATEMÁTICA ORIGINAL MODIFICADA
+								-- =====================================================
+
+								local factor = 45
+
+								local sizeX =
+									(1000 / distance)
+									* (factor / 45)
+
+								local sizeY =
+									(1600 / distance)
+									* (factor / 45)
+
+								sizeX =
+									math.clamp(
+										sizeX,
+										6,
+										120
+									)
+
+								sizeY =
+									math.clamp(
+										sizeY,
+										10,
+										200
+									)
+
+								local posX =
+									pos.X - sizeX / 2
+
+								local posY =
+									pos.Y - sizeY / 2
+
+								-- =====================================================
+								-- BOX
+								-- =====================================================
+
+								elements.Box.Position =
+									UDim2.new(
+										0,
+										posX,
+										0,
+										posY
+									)
+
+								elements.Box.Size =
+									UDim2.new(
+										0,
+										sizeX,
+										0,
+										sizeY
+									)
+
+								elements.Box.Visible = true
+
+								-- =====================================================
+								-- NOME
+								-- =====================================================
+
+								elements.Name.Text =
+									player.Name
+
+								elements.Name.Position =
+									UDim2.new(
+										0,
+										pos.X - 100,
+										0,
+										posY - 28
+									)
+
+								elements.Name.Size =
+									UDim2.new(
+										0,
+										200,
+										0,
+										14
+									)
+
+								elements.Name.Visible = true
+
+								-- =====================================================
+								-- DISTÂNCIA
+								-- =====================================================
+
+								elements.Distance.Text =
+									math.floor(distance) .. "m"
+
+								elements.Distance.Position =
+									UDim2.new(
+										0,
+										pos.X - 100,
+										0,
+										posY - 16
+									)
+
+								elements.Distance.Size =
+									UDim2.new(
+										0,
+										200,
+										0,
+										14
+									)
+
+								elements.Distance.Visible = true
+
+								-- =====================================================
+								-- VIDA
+								-- =====================================================
+
+								local maxHealth =
+									math.max(
+										humanoid.MaxHealth,
+										1
+									)
+
+								local healthRatio =
+									math.clamp(
+										currentHealth / maxHealth,
+										0,
+										1
+									)
+
+								local barHeight =
+									sizeY * healthRatio
+
+								local barWidth = 2
+								local padding = 4
+
+								elements.HealthOutline.Position =
+									UDim2.new(
+										0,
+										posX - barWidth - padding - 1,
+										0,
+										posY - 1
+									)
+
+								elements.HealthOutline.Size =
+									UDim2.new(
+										0,
+										barWidth + 2,
+										0,
+										sizeY + 2
+									)
+
+								elements.HealthOutline.Visible = true
+
+								elements.HealthBar.Position =
+									UDim2.new(
+										0,
+										posX - barWidth - padding,
+										0,
+										posY + sizeY - barHeight
+									)
+
+								elements.HealthBar.Size =
+									UDim2.new(
+										0,
+										barWidth,
+										0,
+										barHeight
+									)
+
+								elements.HealthBar.BackgroundColor3 =
+									Color3.fromHSV(
+										healthRatio * 0.33,
+										1,
+										1
+									)
+
+								elements.HealthBar.Visible = true
+
+							else
+
+								if espElements[player] then
+									hidePlayerESP(
+										espElements[player]
+									)
+								end
+							end
+
+						else
+
+							if espElements[player] then
+								hidePlayerESP(
+									espElements[player]
+								)
+							end
+						end
+
+					else
+
+						if espElements[player] then
+							hidePlayerESP(
+								espElements[player]
+							)
+						end
+					end
+
+				else
+
+					if espElements[player] then
+						hidePlayerESP(
+							espElements[player]
+						)
+					end
+				end
+
+			else
+
+				if espElements[player] then
+					hidePlayerESP(
+						espElements[player]
+					)
+				end
+			end
+		end
+	end
 end)
-end
-end
 
+-- =============================================================================
+-- 19. LIMPEZA
+-- =============================================================================
 
-local CustomFont = { } do
+Players.PlayerRemoving:Connect(function(player)
+	removeSafeESP(player)
+end)
 
-function CustomFont\:New(*Name*, *Weight*, *Style*, *Data*)
-    if not isfile(Data.Id) then writefile(Data.Id, game\:HttpGet(Data.Url)) end
+script.Destroying:Connect(function()
 
-    local FontData = { name = Name, faces = { { name = Name, weight = Weight, style = Style, assetId = getcustomasset(Data.Id) } } }
-    writefile(\`{Library.Folders.Assets}/{Name}.font\`, HttpService\:JSONEncode(FontData))
-    return Font.new(getcustomasset(\`{Library.Folders.Assets}/{Name}.font\`))
-end
-Library.Font = CustomFont\:New("OutfitMedium", 400, "Regular", {
-Id = "OutfitMedium",
-Url = "https\://github.com"
-})
-end
+	for player, elements in pairs(espElements) do
 
-Library.Holder = Instances\:Create("ScreenGui", { Parent = gethui(), Name = "\0", ZIndexBehavior = Enum.ZIndexBehavior.Global, DisplayOrder = 2, ResetOnSpawn = false })Library.UnusedHolder = Instances\:Create("ScreenGui", { Parent = gethui(), Name = "\0", ZIndexBehavior = Enum.ZIndexBehavior.Global, Enabled = false, ResetOnSpawn = false })Library.Unload = function(self)for \_, Value in self.Connections do Value.Connection\:Disconnect() end
-if self.Holder then self.Holder\:Clean() end
-Library = nilgetgenv().Library = nilend
-Library.Round = function(self, Number, Float)
-local Multiplier = 1 / (Float or 1)return MathFloor(Number \* Multiplier) / Multiplierend
-Library.Thread = function(self, Function)
-local NewThread = coroutine.create(Function)coroutine.wrap(function() coroutine.resume(NewThread) end)()TableInsert(self.Threads, NewThread)return NewThreadend
-Library.SafeCall = function(self, Function, ...)local Success, Result = pcall(Function, ...)if not Success then warn(Result) return false end
-return Successend
-Library.Connect = function(self, Event, Callback, Name)Name = Name or StringFormat("conn\_%s", HttpService\:GenerateGUID(false))
-local NewConnection = { Event = Event, Callback = Callback, Name = Name, Connection = nil }Library\:Thread(function() NewConnection.Connection = Event\:Connect(Callback) end)TableInsert(self.Connections, NewConnection)return NewConnectionend
-Library.NextFlag = function(self)self.UnnamedFlags = self.UnnamedFlags + 1return StringFormat("flag\_%s", self.UnnamedFlags)end
-Library.AddToTheme = function(self, Item, Properties)Item = Item.Instance or Itemlocal ThemeData = { Item = Item, Properties = Properties }for Property, Value in ThemeData.Properties do
-if type(Value) == "string" then Item[Property] = self.Theme[Value]else Item[Property] = Value() endendTableInsert(self.ThemeItems, ThemeData)self.ThemeMap[Item] = ThemeDataend
-Library.ChangeItemTheme = function(self, Item, Properties)Item = Item.Instance or Itemif not self.ThemeMap[Item] then return endself.ThemeMap[Item].Properties = Propertiesend
-Library.IsMouseOverFrame = function(self, Frame)Frame = Frame.Instancelocal MousePosition = Vector2New(Mouse.X, Mouse.Y)return MousePosition.X >= Frame.AbsolutePosition.X and MousePosition.X <= Frame.AbsolutePosition.X + Frame.AbsoluteSize.Xand MousePosition.Y >= Frame.AbsolutePosition.Y and MousePosition.Y <= Frame.AbsolutePosition.Y + Frame.AbsoluteSize.Yend
-Library.Window = function(self, Data)
-local Window = { Name = Data.Name or "Window", SubName = Data.SubName or "", Logo = Data.Logo or "", Pages = { }, IsOpen = false }
-local Items = { } doItems["MainFrame"] = Instances\:Create("Frame", {Parent = Library.Holder.Instance, Name = "\0", AnchorPoint = Vector2New(0.5, 0.5),Position = UDim2New(0.5, 0, 0.5, 0), Size = UDim2New(0, 680, 0, 480), BorderSizePixel = 0,BackgroundColor3 = Library.Theme["Background"]})\:AddToTheme({BackgroundColor3 = 'Background'})Items["MainFrame"]\:MakeDraggable()Instances\:Create("UICorner", { Parent = Items["MainFrame"].Instance, CornerRadius = UDimNew(0, 8) })
--- Linha Estética Superior Glow Accent
+		if elements.Holder then
+			elements.Holder:Destroy()
+		end
 
-local TopGlow = Instances\:Create("Frame", {Parent = Items["MainFrame"].Instance, Size = UDim2New(1, 0, 0, 2),BorderSizePixel = 0, BackgroundColor3 = Library.Theme["Accent"]})\:AddToTheme({BackgroundColor3 = 'Accent'})Instances\:Create("UICorner", { Parent = TopGlow\.Instance, CornerRadius = UDimNew(0, 8) })Items["Sidebar"] = Instances\:Create("Frame", {Parent = Items["MainFrame"].Instance, Size = UDim2New(0, 190, 1, 0),BackgroundTransparency = 1, BorderSizePixel = 0})
-local Sep = Instances\:Create("Frame", {Parent = Items["MainFrame"].Instance, Position = UDim2New(0, 190, 0, 0),Size = UDim2New(0, 1, 1, 0), BorderSizePixel = 0, BackgroundColor3 = Library.Theme["Outline"]})\:AddToTheme({BackgroundColor3 = 'Outline'})Items["Top"] = Instances\:Create("Frame", { Parent = Items["Sidebar"].Instance, Size = UDim2New(1, 0, 0, 70), BackgroundTransparency = 1 })Items["Title"] = Instances\:Create("TextLabel", {Parent = Items["Top"].Instance, FontFace = Library.Font, TextColor3 = Library.Theme["Text"],Text = Window\.Name, Position = UDim2New(0, 20, 0, 18), TextSize = 18, BackgroundTransparency = 1, AutomaticSize = Enum.AutomaticSize.X})\:AddToTheme({TextColor3 = 'Text'})Items["Subtitle"] = Instances\:Create("TextLabel", {Parent = Items["Top"].Instance, FontFace = Library.Font, TextColor3 = Library.Theme["Accent"],Text = Window\.SubName, Position = UDim2New(0, 20, 0, 38), TextSize = 12, BackgroundTransparency = 1, AutomaticSize = Enum.AutomaticSize.X})\:AddToTheme({TextColor3 = 'Accent'})Items["Pages"] = Instances\:Create("ScrollingFrame", {Parent = Items["Sidebar"].Instance, Position = UDim2New(0, 10, 0, 80), Size = UDim2New(1, -20, 1, -90),BackgroundTransparency = 1, ScrollBarThickness = 0, CanvasSize = UDim2New(0,0,0,0), AutomaticCanvasSize = Enum.AutomaticSize.Y})Instances\:Create("UIListLayout", { Parent = Items["Pages"].Instance, Padding = UDimNew(0, 6), SortOrder = Enum.SortOrder.LayoutOrder })Items["Content"] = Instances\:Create("Frame", {Parent = Items["MainFrame"].Instance, Position = UDim2New(0, 205, 0, 15),Size = UDim2New(1, -220, 1, -30), BackgroundTransparency = 1})Window\.Items = Itemsend
+		espElements[player] = nil
+	end
 
-local Debounce = falsefunction Window\:SetOpen(Bool)if Debounce then return endWindow\.IsOpen = BoolDebounce = trueItems["MainFrame"].Instance.Visible = BoolDebounce = falseend
-Library\:Connect(UserInputService.InputBegan, function(Input)if tostring(Input.KeyCode) == Library.MenuKeybind thenWindow\:SetOpen(not Window\.IsOpen)endend)Window\:SetOpen(true)return setmetatable(Window, Library)end
-Library.Page = function(self, Data)
-local Page = { Window = self, Name = Data.Name or "Page", Active = false, Items = {} }
-local Items = { } doItems["Button"] = Instances\:Create("TextButton", {Parent = Page.Window\.Items["Pages"].Instance, Size = UDim2New(1, 0, 0, 36),BackgroundTransparency = 1, Text = "", AutoButtonColor = false})
-local Bg = Instances\:Create("Frame", {Parent = Items["Button"].Instance, Size = UDim2New(1, 0, 1, 0),BackgroundColor3 = Library.Theme["Element"], BackgroundTransparency = 1, BorderSizePixel = 0})\:AddToTheme({BackgroundColor3 = 'Element'})Instances\:Create("UICorner", { Parent = Bg.Instance, CornerRadius = UDimNew(0, 6) })
-local Tx = Instances\:Create("TextLabel", {Parent = Items["Button"].Instance, FontFace = Library.Font, TextColor3 = Library.Theme["Text"],Text = Page.Name, Position = UDim2New(0, 12, 0, 0), Size = UDim2New(1, -12, 1, 0), TextSize = 14,TextXAlignment = Enum.TextXAlignment.Left, BackgroundTransparency = 1, TextTransparency = 0.4})\:AddToTheme({TextColor3 = 'Text'})Items["PageFrame"] = Instances\:Create("ScrollingFrame", {Parent = Library.UnusedHolder.Instance, Size = UDim2New(1, 0, 1, 0),BackgroundTransparency = 1, ScrollBarThickness = 2, ScrollBarImageColor3 = Library.Theme["Accent"],CanvasSize = UDim2New(0,0,0,0), AutomaticCanvasSize = Enum.AutomaticSize.Y, Visible = false})\:AddToTheme({ScrollBarImageColor3 = 'Accent'})Instances\:Create("UIListLayout", { Parent = Items["PageFrame"].Instance, Padding = UDimNew(0, 12), SortOrder = Enum.SortOrder.LayoutOrder })Page.Items = ItemsPage.Bg = BgPage.Tx = Txend
+	if MenuGui then
+		MenuGui:Destroy()
+	end
 
-function Page\:Turn(Bool)Page.Active = BoolItems["PageFrame"].Instance.Visible = BoolItems["PageFrame"].Instance.Parent = Bool and Page.Window\.Items["Content"].Instance or Library.UnusedHolder.Instanceif Bool thenPage.Bg\:Tween(nil, {BackgroundTransparency = 0})Page.Tx\:Tween(nil, {TextTransparency = 0})elsePage.Bg\:Tween(nil, {BackgroundTransparency = 1})Page.Tx\:Tween(nil, {TextTransparency = 0.4})endendItems["Button"]\:Connect("MouseButton1Down", function()for \_, v in Page.Window\.Pages do v\:Turn(v == Page) endend)if #Page.Window\.Pages == 0 then Page\:Turn(true) endTableInsert(Page.Window\.Pages, Page)return setmetatable(Page, Library.Pages)end
-    Library.Pages.Section = function(self, Data)
-    local Section = { Window = self.Window, Page = self, Name = Data.Name or "Section", Items = {} }
-    local Items = { } doItems["Outer"] = Instances\:Create("Frame", {Parent = Section.Page.Items["PageFrame"].Instance, Size = UDim2New(1, 0, 0, 40),BackgroundColor3 = Library.Theme["Outline"], BorderSizePixel = 0, AutomaticSize = Enum.AutomaticSize.Y})\:AddToTheme({BackgroundColor3 = 'Outline'})Instances\:Create("UICorner", { Parent = Outer.Instance, CornerRadius = UDimNew(0, 6) })Items["Inner"] = Instances\:Create("Frame", {Parent = Items["Outer"].Instance, Position = UDim2New(0, 1, 0, 1), Size = UDim2New(1, -2, 1, -2),BackgroundColor3 = Library.Theme["Inline"], BorderSizePixel = 0, AutomaticSize = Enum.AutomaticSize.Y})\:AddToTheme({BackgroundColor3 = 'Inline'})Instances\:Create("UICorner", { Parent = Items["Inner"].Instance, CornerRadius = UDimNew(0, 6) })Items["Container"] = Instances\:Create("Frame", {Parent = Items["Inner"].Instance, Position = UDim2New(0, 12, 0, 12), Size = UDim2New(1, -24, 1, -24),BackgroundTransparency = 1, AutomaticSize = Enum.AutomaticSize.Y})Instances\:Create("UIListLayout", { Parent = Items["Container"].Instance, Padding = UDimNew(0, 10), SortOrder = Enum.SortOrder.LayoutOrder })
-    -- Título da Seção separado de forma minimalista
-
-    local Title = Instances\:Create("TextLabel", {Parent = Items["Container"].Instance, FontFace = Library.Font, TextColor3 = Library.Theme["Accent"],Text = Section.Name\:upper(), TextSize = 11, BackgroundTransparency = 1, AutomaticSize = Enum.AutomaticSize.XY})\:AddToTheme({TextColor3 = 'Accent'})endSection.Container = Items["Container"]return setmetatable(Section, Library.Sections)end
-    Library.Sections.Toggle = function(self, Data)
-    local Toggle = { Flag = Data.Flag or Library\:NextFlag(), Callback = Data.Callback or function() end, Value = false }
-    local Items = { } doItems["Button"] = Instances\:Create("TextButton", {Parent = self.Container.Instance, Size = UDim2New(1, 0, 0, 24), BackgroundTransparency = 1, Text = ""})Items["Label"] = Instances\:Create("TextLabel", {Parent = Items["Button"].Instance, FontFace = Library.Font, TextColor3 = Library.Theme["Text"],Text = Data.Name or "Toggle", TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left, BackgroundTransparency = 1, Size = UDim2New(1, -40, 1, 0)})\:AddToTheme({TextColor3 = 'Text'})Items["Frame"] = Instances\:Create("Frame", {Parent = Items["Button"].Instance, Position = UDim2New(1, -36, 0, 3), Size = UDim2New(0, 36, 0, 18),BackgroundColor3 = Library.Theme["Element"], BorderSizePixel = 0})\:AddToTheme({BackgroundColor3 = 'Element'})Instances\:Create("UICorner", { Parent = Items["Frame"].Instance, CornerRadius = UDimNew(1, 0) })Items["Stroke"] = Instances\:Create("UIStroke", { Parent = Items["Frame"].Instance, Color = Library.Theme["Outline"] })\:AddToTheme({Color = 'Outline'})Items["Dot"] = Instances\:Create("Frame", {Parent = Items["Frame"].Instance, Position = UDim2New(0, 3, 0, 3), Size = UDim2New(0, 12, 0, 12),BackgroundColor3 = FromRGB(150, 150, 150), BorderSizePixel = 0})Instances\:Create("UICorner", { Parent = Items["Dot"].Instance, CornerRadius = UDimNew(1, 0) })end
-
-    function Toggle\:Set(Value)Toggle.Value = ValueLibrary.Flags[Toggle.Flag] = Valueif Value thenItems["Dot"]\:Tween(nil, {Position = UDim2New(0, 21, 0, 3), BackgroundColor3 = Library.Theme.Accent})Items["Stroke"]\:Tween(nil, {Color = Library.Theme.Accent})elseItems["Dot"]\:Tween(nil, {Position = UDim2New(0, 3, 0, 3), BackgroundColor3 = FromRGB(140, 140, 140)})Items["Stroke"]\:Tween(nil, {Color = Library.Theme.Outline})endpcall(Toggle.Callback, Value)endItems["Button"]\:Connect("MouseButton1Down", function() Toggle\:Set(not Toggle.Value) end)Toggle\:Set(Data.Default or false)return Toggleend
-        Library.Sections.Slider = function(self, Data)
-        local Slider = { Min = Data.Min or 0, Max = Data.Max or 100, Value = Data.Default or 0, Suffix = Data.Suffix or "", Callback = Data.Callback or function() end, Flag = Data.Flag or Library\:NextFlag() }
-        local Items = { } doItems["Main"] = Instances\:Create("Frame", { Parent = self.Container.Instance, Size = UDim2New(1, 0, 0, 38), BackgroundTransparency = 1 })Items["Label"] = Instances\:Create("TextLabel", {Parent = Items["Main"].Instance, FontFace = Library.Font, TextColor3 = Library.Theme["Text"],Text = Data.Name or "Slider", TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left, BackgroundTransparency = 1, Size = UDim2New(1, 0, 0, 16)})\:AddToTheme({TextColor3 = 'Text'})Items["ValLabel"] = Instances\:Create("TextLabel", {Parent = Items["Main"].Instance, FontFace = Library.Font, TextColor3 = Library.Theme["Accent"],Text = tostring(Slider.Value)..Slider.Suffix, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Right, BackgroundTransparency = 1, Size = UDim2New(1, 0, 0, 16)})\:AddToTheme({TextColor3 = 'Accent'})Items["Bar"] = Instances\:Create("TextButton", {Parent = Items["Main"].Instance, Position = UDim2New(0, 0, 0, 24), Size = UDim2New(1, 0, 0, 6),BackgroundColor3 = Library.Theme["Element"], BorderSizePixel = 0, Text = ""})\:AddToTheme({BackgroundColor3 = 'Element'})Instances\:Create("UICorner", { Parent = Items["Bar"].Instance, CornerRadius = UDimNew(1, 0) })Items["Fill"] = Instances\:Create("Frame", {Parent = Items["Bar"].Instance, Size = UDim2New(0, 0, 1, 0),BackgroundColor3 = Library.Theme["Accent"], BorderSizePixel = 0})\:AddToTheme({BackgroundColor3 = 'Accent'})Instances\:Create("UICorner", { Parent = Items["Fill"].Instance, CornerRadius = UDimNew(1, 0) })end
-
-        local
-        function UpdateSlider(Input)
-            local SizeX = MathClamp((Input.Position.X - Items["Bar"].Instance.AbsolutePosition.X) / Items["Bar"].Instance.AbsoluteSize.X, 0, 1)
-            local NewValue = MathFloor(Slider.Min + ((Slider.Max - Slider.Min) \* SizeX))Slider.Value = NewValueLibrary.Flags[Slider.Flag] = NewValueItems["Fill"].Instance.Size = UDim2New(SizeX, 0, 1, 0)Items["ValLabel"].Instance.Text = tostring(NewValue)..Slider.Suffixpcall(Slider.Callback, NewValue)end
-
-            local Sliding = falseItems["Bar"]\:Connect("InputBegan", function(Input)if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch thenSliding = true UpdateSlider(Input)endend)Library\:Connect(UserInputService.InputChanged, function(Input)if Sliding and (Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch) thenUpdateSlider(Input)endend)UserInputService.InputEnded\:Connect(function(Input)if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then Sliding = false endend)-- Inicializar Posição Real do Slider Baseado no Default
-
-            local InitRatio = (Slider.Value - Slider.Min) / (Slider.Max - Slider.Min)Items["Fill"].Instance.Size = UDim2New(MathClamp(InitRatio, 0, 1), 0, 1, 0)return Sliderend
-            Library.Sections.Label = function(self, Text)
-            local Label = Instances\:Create("TextLabel", {Parent = self.Container.Instance, FontFace = Library.Font, TextColor3 = Library.Theme["Text"],Text = Text, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left, BackgroundTransparency = 1,AutomaticSize = Enum.AutomaticSize.Y, Size = UDim2New(1, 0, 0, 0), TextTransparency = 0.5})\:AddToTheme({TextColor3 = 'Text'})return Labelend
-            Library.CreateWindow = Library.WindowLibrary.AddTab = Library.PageLibrary.Pages.AddSection = Library.Pages.SectionLibrary.Sections.AddToggle = Library.Sections.ToggleLibrary.Sections.AddSlider = Library.Sections.SliderLibrary.Sections.AddLabel = Library.Sections.Labelend-- =============================================================================-- CONFIGURAÇÕES E ESTADOS DO ESP / CHAMS-- =============================================================================
-
-            local EspPlayersEnabled = truelocal EspBoxEnabled = truelocal EspChamsEnabled = truelocal MaxEspDistance = 5000-- =============================================================================-- GERENCIADOR DE INTERFACE DO USUÁRIO-- =============================================================================
-
-            local Window = Library\:CreateWindow({Name = "THE WALKING DEAD 3",SubName = "QA VISUALS OVERHAUL",SettingsTabEnabled = false})
-            local SurvivorsPage = Window\:AddTab("ESP Sobreviventes")
-            local SurvivorsSection = SurvivorsPage\:AddSection("Configurações Visuais")SurvivorsSection\:AddToggle({Name = "Mestre Ativado (ESP Global)",Default = true,Callback = function(Value)EspPlayersEnabled = Valueend})SurvivorsSection\:AddToggle({Name = "Mostrar Caixas (2D Boxes)",Default = true,Callback = function(Value)EspBoxEnabled = Valueend})SurvivorsSection\:AddToggle({Name = "Mostrar Silhuetas (Chams)",Default = true,Callback = function(Value)EspChamsEnabled = Valueend})
-            -- SLIDER DESLIZÁVEL ATUALIZADO: 0 a 10.000 MetrosSurvivorsSection\:AddSlider({Name = "Distância de Renderização",Min = 0,Max = 10000,Default = 5000,Suffix = "m",Callback =
-            function(Value)MaxEspDistance = Valueend})SurvivorsSection\:AddLabel("Dica: Pressione [ K ] para fechar ou abrir este painel a qualquer momento.")
-                local InfectedPage = Window\:AddTab("ESP Infectados")
-                local InfectedSection = InfectedPage\:AddSection("Em Breve")InfectedSection\:AddLabel("Módulos em desenvolvimento.")-- =============================================================================-- ENGENHARIA DO MOTOR DE RENDERIZAÇÃO (ESP BOX 2D + HEALTH + CHAMS NATIVO)-- =============================================================================
-
-                local GuiParent = LocalPlayer\:WaitForChild("PlayerGui")
-                local EspGui = Instance.new("ScreenGui")EspGui.Name = "QA\_ESP\_Engine"EspGui.ResetOnSpawn = falseEspGui.ZIndexBehavior = Enum.ZIndexBehavior.GlobalEspGui.Parent = GuiParentlocal espElements = {}
-                local
-                function createSafeESP(player)
-                    local elements = {}
-                    local holder = Instance.new("Folder")holder.Name = "Render\_" .. player.UserIdholder.Parent = EspGui-- Box Outline Externa
-
-                    local box = Instance.new("Frame")box.BackgroundTransparency = 1box.BorderColor3 = Color3.fromRGB(0, 180, 216) -- Azul Cyan Premium combinando com a UIbox.BorderSizePixel = 1box.Visible = falsebox.Parent = holderelements.Box = box-- Nome
-
-                    local nameLabel = Instance.new("TextLabel")nameLabel.BackgroundTransparency = 1nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)nameLabel.TextSize = 12nameLabel.Font = Enum.Font.SourceSansBoldnameLabel.TextStrokeTransparency = 0.3nameLabel.TextXAlignment = Enum.TextXAlignment.CenternameLabel.Visible = falsenameLabel.Parent = holderelements.Name = nameLabel-- Distância
-
-                    local distLabel = Instance.new("TextLabel")distLabel.BackgroundTransparency = 1distLabel.TextColor3 = Color3.fromRGB(240, 220, 80)distLabel.TextSize = 11distLabel.Font = Enum.Font.SourceSansBolddistLabel.TextStrokeTransparency = 0.3distLabel.TextXAlignment = Enum.TextXAlignment.CenterdistLabel.Visible = falsedistLabel.Parent = holderelements.Distance = distLabel-- Healthbars
-
-                    local barOutline = Instance.new("Frame")barOutline.BackgroundColor3 = Color3.fromRGB(0, 0, 0)barOutline.BorderSizePixel = 0barOutline.Visible = falsebarOutline.Parent = holderelements.HealthOutline = barOutlinelocal bar = Instance.new("Frame")bar.BorderSizePixel = 0bar.Visible = falsebar.Parent = holderelements.HealthBar = bar-- Elemento de Chams Nativo Otimizado (Highlight)
-
-                    local highlight = Instance.new("Highlight")highlight.Name = "Chams"highlight.FillColor = Color3.fromRGB(0, 180, 216)highlight.FillTransparency = 0.5highlight.OutlineColor = Color3.fromRGB(255, 255, 255)highlight.OutlineTransparency = 0.2highlight.Enabled = falsehighlight.Parent = holderelements.Highlight = highlightelements.Holder = holderespElements[player] = elementsend
-
-                    local
-                    function removeSafeESP(player)if espElements[player] then
-                        if espElements[player].Holder then espElements[player].Holder\:Destroy() endespElements[player] = nilendend
-
-                        local
-                        function cleanAllVisuals()for \_, elements in pairs(espElements) do
-                            if elements.Box then elements.Box.Visible = false end
-                            if elements.Name then elements.Name.Visible = false end
-                            if elements.Distance then elements.Distance.Visible = false end
-                            if elements.HealthOutline then elements.HealthOutline.Visible = false end
-                            if elements.HealthBar then elements.HealthBar.Visible = false end
-                            if elements.Highlight then elements.Highlight.Enabled = false endendend-- Loop de renderização com performance aprimoradaRunService.RenderStepped\:Connect(
-                            function()if not EspPlayersEnabled thencleanAllVisuals()returnend
-
-                                local cameraPosition = Camera.CFrame.Positionlocal playersList = Players\:GetPlayers()for i = 1, #playersList do
-
-                                local player = playersList[i]if player \~= LocalPlayer then
-
-                                local character = player.Characterif character then
-
-                                local hrp = character\:FindFirstChild("HumanoidRootPart")
-                                local humanoid = character\:FindFirstChildOfClass("Humanoid")if hrp and humanoid and hrp\:IsA("BasePart") and humanoid.Health > 0 then
-
-                                local distance = (cameraPosition - hrp.Position).Magnitudeif distance <= MaxEspDistance then
-                                local pos, onScreen = Camera\:WorldToViewportPoint(hrp.Position)if not espElements[player] thencreateSafeESP(player)end
-
-                                local elements = espElements[player]-- Atualização Dinâmica do Chams (Highlight)
-                                if EspChamsEnabled thenelements.Highlight.Adornee = characterelements.Highlight.Enabled = trueelseelements.Highlight.Enabled = falseend-- Atualização Dinâmica da Box 2D e Texto
-                                if onScreen and pos.Z > 0 and EspBoxEnabled then
-
-                                    local sizeX = math.clamp((1000 / distance) \* 35, 8, 120)
-                                    local sizeY = math.clamp((1600 / distance) \* 35, 12, 200)
-                                    local posX = pos.X - sizeX / 2local posY = pos.Y - sizeY / 2elements.Box.Position = UDim2.new(0, posX, 0, posY)elements.Box.Size = UDim2.new(0, sizeX, 0, sizeY)elements.Box.Visible = trueelements.Name.Text = player.Nameelements.Name.Position = UDim2.new(0, pos.X - 100, 0, posY - 28)elements.Name.Size = UDim2.new(0, 200, 0, 14)elements.Name.Visible = trueelements.Distance.Text = math.floor(distance) .. "m"elements.Distance.Position = UDim2.new(0, pos.X - 100, 0, posY - 16)elements.Distance.Size = UDim2.new(0, 200, 0, 14)elements.Distance.Visible = true-- Barra de Vida Lateral Embutida na Caixa
-
-                                    local healthRatio = math.clamp(humanoid.Health / math.max(humanoid.MaxHealth, 1), 0, 1)
-                                    local barHeight = sizeY \* healthRatiolocal barWidth = 2elements.HealthOutline.Position = UDim2.new(0, posX - barWidth - 5, 0, posY - 1)elements.HealthOutline.Size = UDim2.new(0, barWidth + 2, 0, sizeY + 2)elements.HealthOutline.Visible = trueelements.HealthBar.Position = UDim2.new(0, posX - barWidth - 4, 0, posY + sizeY - barHeight)elements.HealthBar.Size = UDim2.new(0, barWidth, 0, barHeight)elements.HealthBar.BackgroundColor3 = Color3.fromHSV(healthRatio \* 0.33, 1, 1) -- Verde para Vermelho dinâmicoelements.HealthBar.Visible = trueelse-- Caso saia da tela mas permaneça no raio, mantém o Chams ativo e esconde a Box 2D
-                                    if elements.Box then elements.Box.Visible = false end
-                                    if elements.Name then elements.Name.Visible = false end
-                                    if elements.Distance then elements.Distance.Visible = false end
-                                    if elements.HealthOutline then elements.HealthOutline.Visible = false end
-                                    if elements.HealthBar then elements.HealthBar.Visible = false endend
-                                elseif espElements[player] thenremoveSafeESP(player)end
-                            elseif espElements[player] thenremoveSafeESP(player)end
-                        elseif espElements[player] thenremoveSafeESP(player)endendendend)Players.PlayerRemoving\:Connect(removeSafeESP)script.Destroying\:Connect(function()cleanAllVisuals()if EspGui then EspGui\:Destroy() end
-                        if Window and Window\.SetOpen then pcall(function() Window\:SetOpen(false) end) endend)
+	if EspGui then
+		EspGui:Destroy()
+	end
+end)
