@@ -1,23 +1,6 @@
---[[
-    QA ESP - Ferramenta de teste visual
-    Coloque como LocalScript em:
-
-    StarterPlayer
-        > StarterPlayerScripts
-
-    Recursos:
-    - ESP de jogadores
-    - Box 2D
-    - Nome
-    - Distância
-    - Barra de vida
-    - Toggle ativar/desativar
-    - Limite de distância
-    - Tecla K para ocultar/mostrar interface
-]]
-
+```lua
 -- =============================================================================
--- 1. SERVIÇOS
+-- 1. SERVIÇOS E CONFIGURAÇÕES
 -- =============================================================================
 
 local Players = game:GetService("Players")
@@ -28,34 +11,37 @@ local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- =============================================================================
--- 2. CONFIGURAÇÕES
--- =============================================================================
-
 local EspPlayersEnabled = true
 local MaxEspDistance = 5000
 
-local THEME_RED = Color3.fromRGB(180, 40, 40)
-local DARK_1 = Color3.fromRGB(18, 18, 18)
-local DARK_2 = Color3.fromRGB(24, 24, 24)
-local DARK_3 = Color3.fromRGB(30, 30, 30)
-local TEXT_PRIMARY = Color3.fromRGB(255, 255, 255)
-local TEXT_SECONDARY = Color3.fromRGB(180, 180, 180)
+-- =============================================================================
+-- 2. FUNÇÕES AUXILIARES
+-- =============================================================================
+
+local function getCamera()
+    Camera = workspace.CurrentCamera
+    return Camera
+end
 
 -- =============================================================================
--- 3. GUI PRINCIPAL
+-- 3. INTERFACE GRÁFICA
 -- =============================================================================
+
+local GuiParent = LocalPlayer:WaitForChild("PlayerGui")
 
 local MenuGui = Instance.new("ScreenGui")
-MenuGui.Name = "QA_ESP_Interface"
+MenuGui.Name = "QA_Visuals_Interface"
 MenuGui.ResetOnSpawn = false
-MenuGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-MenuGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+MenuGui.Parent = GuiParent
+
+-- =============================================================================
+-- 4. JANELA PRINCIPAL
+-- =============================================================================
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.fromOffset(520, 340)
+MainFrame.Size = UDim2.new(0, 520, 0, 340)
 MainFrame.Position = UDim2.new(0.5, -260, 0.5, -170)
-MainFrame.BackgroundColor3 = DARK_1
+MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
@@ -66,7 +52,7 @@ MainCorner.CornerRadius = UDim.new(0, 10)
 MainCorner.Parent = MainFrame
 
 -- =============================================================================
--- 4. TOP BAR
+-- 5. TOP BAR
 -- =============================================================================
 
 local TopBar = Instance.new("Frame")
@@ -81,47 +67,58 @@ TopCorner.Parent = TopBar
 
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -30, 1, 0)
-Title.Position = UDim2.fromOffset(20, 0)
+Title.Position = UDim2.new(0, 20, 0, 0)
 Title.BackgroundTransparency = 1
 Title.Text = "THE WALKING DEAD 3 — QA VISUALS"
-Title.TextColor3 = TEXT_PRIMARY
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextSize = 14
-Title.Font = Enum.Font.GothamBold
+Title.Font = Enum.Font.Gobold
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = TopBar
 
 local AccLine = Instance.new("Frame")
 AccLine.Size = UDim2.new(1, 0, 0, 2)
-AccLine.Position = UDim2.new(0, 0, 1, -2)
-AccLine.BackgroundColor3 = THEME_RED
+AccLine.Position = UDim2.new(0, 0, 0, 48)
+AccLine.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
 AccLine.BorderSizePixel = 0
 AccLine.Parent = TopBar
 
 -- =============================================================================
--- 5. PAINEL LATERAL
+-- 6. PAINEL LATERAL
 -- =============================================================================
 
 local SidePanel = Instance.new("Frame")
 SidePanel.Size = UDim2.new(0, 150, 1, -50)
-SidePanel.Position = UDim2.fromOffset(0, 50)
+SidePanel.Position = UDim2.new(0, 0, 0, 50)
 SidePanel.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
 SidePanel.BorderSizePixel = 0
 SidePanel.Parent = MainFrame
 
+local ContentContainer = Instance.new("Frame")
+ContentContainer.Size = UDim2.new(1, -150, 1, -50)
+ContentContainer.Position = UDim2.new(0, 150, 0, 50)
+ContentContainer.BackgroundTransparency = 1
+ContentContainer.Parent = MainFrame
+
 local function addTab(name, index, isActive)
+
     local tabBtn = Instance.new("TextButton")
 
     tabBtn.Size = UDim2.new(1, -20, 0, 36)
-    tabBtn.Position = UDim2.fromOffset(10, 15 + (index * 42))
-    tabBtn.BackgroundColor3 = isActive
+    tabBtn.Position = UDim2.new(0, 10, 0, 15 + (index * 42))
+
+    tabBtn.BackgroundColor3 =
+        isActive
         and Color3.fromRGB(30, 30, 30)
         or Color3.fromRGB(26, 26, 26)
 
     tabBtn.BorderSizePixel = 0
-    tabBtn.Font = Enum.Font.GothamBold
+    tabBtn.Font = Enum.Font.SourceSansBold
     tabBtn.TextSize = 13
-    tabBtn.TextColor3 = isActive
-        and TEXT_PRIMARY
+
+    tabBtn.TextColor3 =
+        isActive
+        and Color3.fromRGB(255, 255, 255)
         or Color3.fromRGB(140, 140, 140)
 
     tabBtn.Text = "  " .. name
@@ -133,11 +130,12 @@ local function addTab(name, index, isActive)
     corner.Parent = tabBtn
 
     if isActive then
+
         local indicator = Instance.new("Frame")
 
-        indicator.Size = UDim2.fromOffset(3, 16)
+        indicator.Size = UDim2.new(0, 3, 0, 16)
         indicator.Position = UDim2.new(0, 0, 0.5, -8)
-        indicator.BackgroundColor3 = THEME_RED
+        indicator.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
         indicator.BorderSizePixel = 0
         indicator.Parent = tabBtn
     end
@@ -150,19 +148,13 @@ addTab("ESP Infectados", 1, false)
 addTab("ESP Suprimentos", 2, false)
 
 -- =============================================================================
--- 6. CONTAINER DE CONTEÚDO
+-- 7. CARD DE CONFIGURAÇÕES
 -- =============================================================================
-
-local ContentContainer = Instance.new("Frame")
-ContentContainer.Size = UDim2.new(1, -150, 1, -50)
-ContentContainer.Position = UDim2.fromOffset(150, 50)
-ContentContainer.BackgroundTransparency = 1
-ContentContainer.Parent = MainFrame
 
 local CardFrame = Instance.new("Frame")
 CardFrame.Size = UDim2.new(1, -30, 1, -30)
-CardFrame.Position = UDim2.fromOffset(15, 15)
-CardFrame.BackgroundColor3 = DARK_2
+CardFrame.Position = UDim2.new(0, 15, 0, 15)
+CardFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 24)
 CardFrame.BorderSizePixel = 0
 CardFrame.Parent = ContentContainer
 
@@ -171,24 +163,24 @@ CardCorner.CornerRadius = UDim.new(0, 8)
 CardCorner.Parent = CardFrame
 
 -- =============================================================================
--- 7. TOGGLE ESP
+-- 8. TOGGLE
 -- =============================================================================
 
 local ToggleLabel = Instance.new("TextLabel")
-ToggleLabel.Size = UDim2.fromOffset(200, 40)
-ToggleLabel.Position = UDim2.fromOffset(20, 20)
+ToggleLabel.Size = UDim2.new(0, 200, 0, 40)
+ToggleLabel.Position = UDim2.new(0, 20, 0, 20)
 ToggleLabel.BackgroundTransparency = 1
 ToggleLabel.Text = "Rastrear Jogadores"
 ToggleLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
 ToggleLabel.TextSize = 14
-ToggleLabel.Font = Enum.Font.GothamBold
+ToggleLabel.Font = Enum.Font.SourceSansBold
 ToggleLabel.TextXAlignment = Enum.TextXAlignment.Left
 ToggleLabel.Parent = CardFrame
 
 local ToggleBG = Instance.new("TextButton")
-ToggleBG.Size = UDim2.fromOffset(45, 22)
+ToggleBG.Size = UDim2.new(0, 45, 0, 22)
 ToggleBG.Position = UDim2.new(1, -65, 0, 29)
-ToggleBG.BackgroundColor3 = THEME_RED
+ToggleBG.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
 ToggleBG.BorderSizePixel = 0
 ToggleBG.Text = ""
 ToggleBG.Parent = CardFrame
@@ -198,7 +190,7 @@ ToggleCorner.CornerRadius = UDim.new(1, 0)
 ToggleCorner.Parent = ToggleBG
 
 local ToggleBall = Instance.new("Frame")
-ToggleBall.Size = UDim2.fromOffset(16, 16)
+ToggleBall.Size = UDim2.new(0, 16, 0, 16)
 ToggleBall.Position = UDim2.new(0, 25, 0.5, -8)
 ToggleBall.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 ToggleBall.BorderSizePixel = 0
@@ -209,28 +201,28 @@ ToggleBallCorner.CornerRadius = UDim.new(1, 0)
 ToggleBallCorner.Parent = ToggleBall
 
 -- =============================================================================
--- 8. DISTÂNCIA
+-- 9. DISTÂNCIA
 -- =============================================================================
 
 local SliderLabel = Instance.new("TextLabel")
-SliderLabel.Size = UDim2.fromOffset(250, 40)
-SliderLabel.Position = UDim2.fromOffset(20, 80)
+SliderLabel.Size = UDim2.new(0, 200, 0, 40)
+SliderLabel.Position = UDim2.new(0, 20, 0, 80)
 SliderLabel.BackgroundTransparency = 1
 SliderLabel.Text = "Distância de Renderização"
 SliderLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
 SliderLabel.TextSize = 14
-SliderLabel.Font = Enum.Font.GothamBold
+SliderLabel.Font = Enum.Font.SourceSansBold
 SliderLabel.TextXAlignment = Enum.TextXAlignment.Left
 SliderLabel.Parent = CardFrame
 
 local SliderBtn = Instance.new("TextButton")
 SliderBtn.Size = UDim2.new(1, -40, 0, 36)
-SliderBtn.Position = UDim2.fromOffset(20, 120)
+SliderBtn.Position = UDim2.new(0, 20, 0, 120)
 SliderBtn.BackgroundColor3 = Color3.fromRGB(32, 32, 32)
 SliderBtn.BorderSizePixel = 0
-SliderBtn.Font = Enum.Font.GothamBold
+SliderBtn.Font = Enum.Font.SourceSansBold
 SliderBtn.TextSize = 13
-SliderBtn.TextColor3 = TEXT_PRIMARY
+SliderBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 SliderBtn.Text = "Alcance Máximo: 5000m"
 SliderBtn.Parent = CardFrame
 
@@ -239,33 +231,32 @@ SliderCorner.CornerRadius = UDim.new(0, 6)
 SliderCorner.Parent = SliderBtn
 
 -- =============================================================================
--- 9. FOOTER
+-- 10. FOOTER
 -- =============================================================================
 
 local Footer = Instance.new("TextLabel")
-Footer.Size = UDim2.new(1, -20, 0, 30)
-Footer.Position = UDim2.new(0, 10, 1, -40)
+Footer.Size = UDim2.new(1, 0, 0, 30)
+Footer.Position = UDim2.new(0, 0, 1, -30)
 Footer.BackgroundTransparency = 1
 Footer.Text = "Pressione [ K ] para ocultar a interface"
 Footer.TextColor3 = Color3.fromRGB(90, 90, 90)
 Footer.TextSize = 12
-Footer.Font = Enum.Font.Gotham
+Footer.Font = Enum.Font.SourceSansItalic
 Footer.Parent = CardFrame
 
 -- =============================================================================
--- 10. ESP GUI
+-- 11. ESP
 -- =============================================================================
 
 local EspGui = Instance.new("ScreenGui")
 EspGui.Name = "QA_ESP_Render"
 EspGui.ResetOnSpawn = false
-EspGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-EspGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+EspGui.Parent = GuiParent
 
 local espElements = {}
 
 -- =============================================================================
--- 11. CRIAÇÃO DOS ELEMENTOS DE ESP
+-- 12. CRIAÇÃO DO ESP
 -- =============================================================================
 
 local function createSafeESP(player)
@@ -278,9 +269,10 @@ local function createSafeESP(player)
 
     -- BOX
     local box = Instance.new("Frame")
+
     box.Name = "Box"
     box.BackgroundTransparency = 1
-    box.BorderColor3 = THEME_RED
+    box.BorderColor3 = Color3.fromRGB(180, 40, 40)
     box.BorderSizePixel = 1
     box.Visible = false
     box.Parent = holder
@@ -289,12 +281,14 @@ local function createSafeESP(player)
 
     -- NOME
     local nameLabel = Instance.new("TextLabel")
+
     nameLabel.Name = "Name"
     nameLabel.BackgroundTransparency = 1
-    nameLabel.TextColor3 = TEXT_PRIMARY
-    nameLabel.TextSize = 13
-    nameLabel.Font = Enum.Font.GothamBold
+    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    nameLabel.TextSize = 12
+    nameLabel.Font = Enum.Font.SourceSansBold
     nameLabel.TextStrokeTransparency = 0
+    nameLabel.TextXAlignment = Enum.TextXAlignment.Center
     nameLabel.Visible = false
     nameLabel.Parent = holder
 
@@ -302,12 +296,14 @@ local function createSafeESP(player)
 
     -- DISTÂNCIA
     local distLabel = Instance.new("TextLabel")
+
     distLabel.Name = "Distance"
     distLabel.BackgroundTransparency = 1
     distLabel.TextColor3 = Color3.fromRGB(240, 200, 50)
-    distLabel.TextSize = 12
-    distLabel.Font = Enum.Font.GothamBold
+    distLabel.TextSize = 11
+    distLabel.Font = Enum.Font.SourceSansBold
     distLabel.TextStrokeTransparency = 0
+    distLabel.TextXAlignment = Enum.TextXAlignment.Center
     distLabel.Visible = false
     distLabel.Parent = holder
 
@@ -315,6 +311,7 @@ local function createSafeESP(player)
 
     -- CONTORNO DA VIDA
     local barOutline = Instance.new("Frame")
+
     barOutline.Name = "HealthOutline"
     barOutline.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     barOutline.BorderSizePixel = 0
@@ -325,6 +322,7 @@ local function createSafeESP(player)
 
     -- VIDA
     local bar = Instance.new("Frame")
+
     bar.Name = "HealthBar"
     bar.BorderSizePixel = 0
     bar.Visible = false
@@ -338,7 +336,7 @@ local function createSafeESP(player)
 end
 
 -- =============================================================================
--- 12. REMOÇÃO DO ESP
+-- 13. REMOVER ESP
 -- =============================================================================
 
 local function removeSafeESP(player)
@@ -357,7 +355,7 @@ local function removeSafeESP(player)
 end
 
 -- =============================================================================
--- 13. OCULTAR ESP
+-- 14. OCULTAR ESP
 -- =============================================================================
 
 local function hidePlayerESP(elements)
@@ -387,7 +385,7 @@ local function hidePlayerESP(elements)
     end
 end
 
-local function hideAllESP()
+local function hideAllActiveESP()
 
     for _, elements in pairs(espElements) do
         hidePlayerESP(elements)
@@ -395,7 +393,7 @@ local function hideAllESP()
 end
 
 -- =============================================================================
--- 14. TOGGLE
+-- 15. TOGGLE DO ESP
 -- =============================================================================
 
 ToggleBG.MouseButton1Click:Connect(function()
@@ -408,7 +406,7 @@ ToggleBG.MouseButton1Click:Connect(function()
             ToggleBG,
             TweenInfo.new(0.2),
             {
-                BackgroundColor3 = THEME_RED
+                BackgroundColor3 = Color3.fromRGB(180, 40, 40)
             }
         ):Play()
 
@@ -420,7 +418,8 @@ ToggleBG.MouseButton1Click:Connect(function()
             }
         ):Play()
 
-        ToggleLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+        ToggleLabel.TextColor3 =
+            Color3.fromRGB(220, 220, 220)
 
     else
 
@@ -440,14 +439,15 @@ ToggleBG.MouseButton1Click:Connect(function()
             }
         ):Play()
 
-        ToggleLabel.TextColor3 = Color3.fromRGB(100, 100, 100)
+        ToggleLabel.TextColor3 =
+            Color3.fromRGB(100, 100, 100)
 
-        hideAllESP()
+        hideAllActiveESP()
     end
 end)
 
 -- =============================================================================
--- 15. ALTERAÇÃO DA DISTÂNCIA
+-- 16. DISTÂNCIA
 -- =============================================================================
 
 SliderBtn.MouseButton1Click:Connect(function()
@@ -456,20 +456,20 @@ SliderBtn.MouseButton1Click:Connect(function()
 
         MaxEspDistance = 1500
 
-        SliderBtn.Text = "Alcance Limitado: 1500m"
-        SliderBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
+        SliderBtn.Text =
+            "Alcance Limitado: 1500m (Otimizado)"
 
     else
 
         MaxEspDistance = 5000
 
-        SliderBtn.Text = "Alcance Máximo: 5000m"
-        SliderBtn.TextColor3 = TEXT_PRIMARY
+        SliderBtn.Text =
+            "Alcance Máximo: 5000m (Máximo)"
     end
 end)
 
 -- =============================================================================
--- 16. TECLA K
+-- 17. TECLA K
 -- =============================================================================
 
 UserInputService.InputBegan:Connect(function(input, processed)
@@ -484,7 +484,7 @@ UserInputService.InputBegan:Connect(function(input, processed)
 end)
 
 -- =============================================================================
--- 17. MOTOR DO ESP
+-- 18. MOTOR DO ESP
 -- =============================================================================
 
 RunService.RenderStepped:Connect(function()
@@ -493,15 +493,18 @@ RunService.RenderStepped:Connect(function()
         return
     end
 
-    Camera = workspace.CurrentCamera
+    local currentCamera = getCamera()
 
-    if not Camera then
+    if not currentCamera then
         return
     end
 
-    local cameraPosition = Camera.CFrame.Position
+    local playersList = Players:GetPlayers()
+    local cameraPosition = currentCamera.CFrame.Position
 
-    for _, player in ipairs(Players:GetPlayers()) do
+    for i = 1, #playersList do
+
+        local player = playersList[i]
 
         if player ~= LocalPlayer then
 
@@ -509,88 +512,161 @@ RunService.RenderStepped:Connect(function()
 
             if character then
 
-                local hrp = character:FindFirstChild("HumanoidRootPart")
-                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                local hrp =
+                    character:FindFirstChild("HumanoidRootPart")
 
-                if hrp and humanoid then
+                local humanoid =
+                    character:FindFirstChildOfClass("Humanoid")
 
-                    if humanoid.Health > 0 then
+                if hrp
+                    and humanoid
+                    and hrp:IsA("BasePart")
+                    and humanoid:IsA("Humanoid")
+                then
+
+                    local currentHealth =
+                        humanoid.Health
+
+                    if currentHealth > 0 then
 
                         local distance =
                             (cameraPosition - hrp.Position).Magnitude
 
                         if distance <= MaxEspDistance then
 
-                            local screenPosition, onScreen =
-                                Camera:WorldToViewportPoint(hrp.Position)
+                            local pos, onScreen =
+                                currentCamera:WorldToViewportPoint(
+                                    hrp.Position
+                                )
 
-                            if onScreen and screenPosition.Z > 0 then
+                            if onScreen and pos.Z > 0 then
 
                                 if not espElements[player] then
                                     createSafeESP(player)
                                 end
 
-                                local elements = espElements[player]
+                                local elements =
+                                    espElements[player]
 
-                                -- Tamanho aproximado baseado na distância
+                                -- =================================================
+                                -- MATEMÁTICA DE TAMANHO
+                                -- =================================================
+
+                                local factor = 45
+
                                 local sizeX =
-                                    math.clamp(2100 / distance, 30, 180)
+                                    (1000 / distance)
+                                    * (factor / 45)
 
                                 local sizeY =
-                                    math.clamp(3100 / distance, 50, 260)
+                                    (1600 / distance)
+                                    * (factor / 45)
+
+                                sizeX =
+                                    math.clamp(
+                                        sizeX,
+                                        6,
+                                        120
+                                    )
+
+                                sizeY =
+                                    math.clamp(
+                                        sizeY,
+                                        10,
+                                        200
+                                    )
 
                                 local posX =
-                                    screenPosition.X - (sizeX / 2)
+                                    pos.X - sizeX / 2
 
                                 local posY =
-                                    screenPosition.Y - (sizeY / 2)
+                                    pos.Y - sizeY / 2
 
+                                -- =================================================
                                 -- BOX
+                                -- =================================================
+
                                 elements.Box.Position =
-                                    UDim2.fromOffset(posX, posY)
+                                    UDim2.new(
+                                        0,
+                                        posX,
+                                        0,
+                                        posY
+                                    )
 
                                 elements.Box.Size =
-                                    UDim2.fromOffset(sizeX, sizeY)
+                                    UDim2.new(
+                                        0,
+                                        sizeX,
+                                        0,
+                                        sizeY
+                                    )
 
                                 elements.Box.Visible = true
 
+                                -- =================================================
                                 -- NOME
+                                -- =================================================
+
                                 elements.Name.Text =
-                                    player.DisplayName
+                                    player.Name
 
                                 elements.Name.Position =
-                                    UDim2.fromOffset(
-                                        screenPosition.X - 100,
-                                        posY - 20
+                                    UDim2.new(
+                                        0,
+                                        pos.X - 100,
+                                        0,
+                                        posY - 28
                                     )
 
                                 elements.Name.Size =
-                                    UDim2.fromOffset(200, 15)
+                                    UDim2.new(
+                                        0,
+                                        200,
+                                        0,
+                                        14
+                                    )
 
                                 elements.Name.Visible = true
 
+                                -- =================================================
                                 -- DISTÂNCIA
+                                -- =================================================
+
                                 elements.Distance.Text =
                                     math.floor(distance) .. "m"
 
                                 elements.Distance.Position =
-                                    UDim2.fromOffset(
-                                        screenPosition.X - 100,
-                                        posY + sizeY + 5
+                                    UDim2.new(
+                                        0,
+                                        pos.X - 100,
+                                        0,
+                                        posY - 16
                                     )
 
                                 elements.Distance.Size =
-                                    UDim2.fromOffset(200, 15)
+                                    UDim2.new(
+                                        0,
+                                        200,
+                                        0,
+                                        14
+                                    )
 
                                 elements.Distance.Visible = true
 
+                                -- =================================================
                                 -- VIDA
+                                -- =================================================
+
                                 local maxHealth =
-                                    math.max(humanoid.MaxHealth, 1)
+                                    math.max(
+                                        humanoid.MaxHealth,
+                                        1
+                                    )
 
                                 local healthRatio =
                                     math.clamp(
-                                        humanoid.Health / maxHealth,
+                                        currentHealth / maxHealth,
                                         0,
                                         1
                                     )
@@ -598,34 +674,44 @@ RunService.RenderStepped:Connect(function()
                                 local barHeight =
                                     sizeY * healthRatio
 
-                                local barWidth = 3
-                                local padding = 5
+                                local barWidth = 2
+                                local padding = 4
 
                                 -- CONTORNO
+
                                 elements.HealthOutline.Position =
-                                    UDim2.fromOffset(
+                                    UDim2.new(
+                                        0,
                                         posX - barWidth - padding - 1,
+                                        0,
                                         posY - 1
                                     )
 
                                 elements.HealthOutline.Size =
-                                    UDim2.fromOffset(
+                                    UDim2.new(
+                                        0,
                                         barWidth + 2,
+                                        0,
                                         sizeY + 2
                                     )
 
                                 elements.HealthOutline.Visible = true
 
                                 -- BARRA
+
                                 elements.HealthBar.Position =
-                                    UDim2.fromOffset(
+                                    UDim2.new(
+                                        0,
                                         posX - barWidth - padding,
+                                        0,
                                         posY + sizeY - barHeight
                                     )
 
                                 elements.HealthBar.Size =
-                                    UDim2.fromOffset(
+                                    UDim2.new(
+                                        0,
                                         barWidth,
+                                        0,
                                         barHeight
                                     )
 
@@ -641,35 +727,45 @@ RunService.RenderStepped:Connect(function()
                             else
 
                                 if espElements[player] then
-                                    hidePlayerESP(espElements[player])
+                                    hidePlayerESP(
+                                        espElements[player]
+                                    )
                                 end
                             end
 
                         else
 
                             if espElements[player] then
-                                hidePlayerESP(espElements[player])
+                                hidePlayerESP(
+                                    espElements[player]
+                                )
                             end
                         end
 
                     else
 
                         if espElements[player] then
-                            hidePlayerESP(espElements[player])
+                            hidePlayerESP(
+                                espElements[player]
+                            )
                         end
                     end
 
                 else
 
                     if espElements[player] then
-                        hidePlayerESP(espElements[player])
+                        hidePlayerESP(
+                            espElements[player]
+                        )
                     end
                 end
 
             else
 
                 if espElements[player] then
-                    hidePlayerESP(espElements[player])
+                    hidePlayerESP(
+                        espElements[player]
+                    )
                 end
             end
         end
@@ -677,16 +773,12 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- =============================================================================
--- 18. LIMPEZA QUANDO O JOGADOR SAI
+-- 19. LIMPEZA
 -- =============================================================================
 
 Players.PlayerRemoving:Connect(function(player)
     removeSafeESP(player)
 end)
-
--- =============================================================================
--- 19. LIMPEZA QUANDO O SCRIPT FOR ENCERRADO
--- =============================================================================
 
 script.Destroying:Connect(function()
 
@@ -707,3 +799,4 @@ script.Destroying:Connect(function()
         EspGui:Destroy()
     end
 end)
+```
