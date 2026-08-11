@@ -1,286 +1,451 @@
--- =============================================================================
--- 11. ESP SYSTEM (CORRIGIDO - DESLIGA COMPLETAMENTE)
--- =============================================================================
+-- ============================================================
+-- OBSIDIAN ULTRA - CORRIGIDO PARA SUA ESTRUTURA DE PASTAS
+-- ============================================================
 
-local ESP = {}
+local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
+local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
+local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
+local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
 
--- Função para REMOVER completamente TODOS os ESPs
-local function RemoveAllESP()
-    for player, data in pairs(ESP) do
-        pcall(function()
-            if data.BoxOut then data.BoxOut:Remove() end
-            if data.Box then data.Box:Remove() end
-            if data.Name then data.Name:Remove() end
-            if data.Dist then data.Dist:Remove() end
-            if data.HealthBg then data.HealthBg:Remove() end
-            if data.HealthBar then data.HealthBar:Remove() end
-            if data.Line then data.Line:Remove() end
-            if data.Dot then data.Dot:Remove() end
-        end)
-    end
-    ESP = {} -- Limpa a tabela completamente
-end
+local Options = Library.Options
+local Toggles = Library.Toggles
 
--- Função para esconder TODOS os elementos de um ESP
-local function HideESP(data)
-    if not data then return end
-    pcall(function()
-        if data.BoxOut then data.BoxOut.Visible = false end
-        if data.Box then data.Box.Visible = false end
-        if data.Name then data.Name.Visible = false end
-        if data.Dist then data.Dist.Visible = false end
-        if data.HealthBg then data.HealthBg.Visible = false end
-        if data.HealthBar then data.HealthBar.Visible = false end
-        if data.Line then data.Line.Visible = false end
-        if data.Dot then data.Dot.Visible = false end
-    end)
-end
+local Window = Library:CreateWindow({
+    Title = "Obsidian Dev Tools",
+    Footer = "v3.3 - Estrutura Corrigida",
+    Icon = 95816097006870,
+    NotifySide = "Right",
+    ShowCustomCursor = true,
+})
 
--- Função para REMOVER completamente um ESP específico
-local function RemoveESP(player)
-    local data = ESP[player]
-    if data then
-        pcall(function()
-            if data.BoxOut then data.BoxOut:Remove() end
-            if data.Box then data.Box:Remove() end
-            if data.Name then data.Name:Remove() end
-            if data.Dist then data.Dist:Remove() end
-            if data.HealthBg then data.HealthBg:Remove() end
-            if data.HealthBar then data.HealthBar:Remove() end
-            if data.Line then data.Line:Remove() end
-            if data.Dot then data.Dot:Remove() end
-        end)
-        ESP[player] = nil
-    end
-end
+local Tabs = {
+    Main = Window:AddTab("Main", "user"),
+    ESP = Window:AddTab("ESP", "eye"),
+    Misc = Window:AddTab("Misc", "settings"),
+    ["UI Settings"] = Window:AddTab("UI Settings", "settings"),
+}
 
--- Função para criar ESP
-local function CreateESP(player)
-    -- Primeiro remove qualquer ESP existente desse player
-    RemoveESP(player)
+local ESPGroup = Tabs.ESP:AddLeftGroupbox("ESP Configuration", "eye")
+
+ESPGroup:AddToggle("ESP_Enabled", {
+    Text = "Enable ESP (Players Only)",
+    Default = false,
+    Tooltip = "Ativa o ESP para jogadores (ignora zumbis/bots)",
+})
+Toggles.ESP_Enabled:OnChanged(function()
+    _G.ESP_Enabled = Toggles.ESP_Enabled.Value
+    if not _G.ESP_Enabled then clearAllESP() end
+end)
+
+ESPGroup:AddToggle("ESP_Box", {
+    Text = "Box ESP (ViewportFrame)",
+    Default = true,
+})
+Toggles.ESP_Box:OnChanged(function() _G.ESP_Box = Toggles.ESP_Box.Value end)
+
+ESPGroup:AddToggle("ESP_Line", {
+    Text = "Line ESP",
+    Default = true,
+})
+Toggles.ESP_Line:OnChanged(function() _G.ESP_Line = Toggles.ESP_Line.Value end)
+
+ESPGroup:AddToggle("ESP_Name", {
+    Text = "Name ESP",
+    Default = true,
+})
+Toggles.ESP_Name:OnChanged(function() _G.ESP_Name = Toggles.ESP_Name.Value end)
+
+ESPGroup:AddToggle("ESP_Distance", {
+    Text = "Distance ESP",
+    Default = true,
+})
+Toggles.ESP_Distance:OnChanged(function() _G.ESP_Distance = Toggles.ESP_Distance.Value end)
+
+ESPGroup:AddToggle("ESP_Health", {
+    Text = "Health Bar",
+    Default = true,
+})
+Toggles.ESP_Health:OnChanged(function() _G.ESP_Health = Toggles.ESP_Health.Value end)
+
+ESPGroup:AddSlider("ESP_MaxDistance", {
+    Text = "Max Distance",
+    Default = 500,
+    Min = 50,
+    Max = 100000,
+    Rounding = 0,
+    Suffix = " studs",
+})
+Options.ESP_MaxDistance:OnChanged(function() _G.ESP_MaxDistance = Options.ESP_MaxDistance.Value end)
+
+ESPGroup:AddSlider("ESP_BoxSize", {
+    Text = "Box Size",
+    Default = 4,
+    Min = 1,
+    Max = 10,
+    Rounding = 1,
+    Suffix = "x",
+})
+Options.ESP_BoxSize:OnChanged(function() _G.ESP_BoxSize = Options.ESP_BoxSize.Value end)
+
+ESPGroup:AddLabel("ESP Color"):AddColorPicker("ESP_Color", {
+    Default = Color3.new(1, 0, 0),
+    Title = "ESP Color",
+    Transparency = 0,
+})
+Options.ESP_Color:OnChanged(function() _G.ESP_Color = Options.ESP_Color.Value end)
+
+-- ============================================================
+-- SISTEMA DE ESP (BACKEND)
+-- ============================================================
+
+local ESP_Objects = {}
+local ESP_GUI = nil
+local espLoopRunning = false
+
+_G.ESP_Enabled = false
+_G.ESP_Box = true
+_G.ESP_Line = true
+_G.ESP_Name = true
+_G.ESP_Distance = true
+_G.ESP_Health = true
+_G.ESP_MaxDistance = 500
+_G.ESP_BoxSize = 4
+_G.ESP_Color = Color3.new(1, 0, 0)
+
+local function createSecureGUI()
+    if ESP_GUI then return ESP_GUI end
     
-    local data = {
-        BoxOut = Drawing.new("Square"),
-        Box = Drawing.new("Square"),
-        Name = Drawing.new("Text"),
-        Dist = Drawing.new("Text"),
-        HealthBg = Drawing.new("Square"),
-        HealthBar = Drawing.new("Square"),
-        Line = Drawing.new("Line"),
-        Dot = Drawing.new("Circle")
+    ESP_GUI = Instance.new("ScreenGui")
+    ESP_GUI.Name = "ObsidianESP_" .. math.random(100000, 999999)
+    ESP_GUI.IgnoreGuiInset = true
+    ESP_GUI.ScreenInsets = Enum.ScreenInsets.None
+    ESP_GUI.DisplayOrder = 999999
+    ESP_GUI.ResetOnSpawn = false
+    ESP_GUI.ZIndexBehavior = Enum.ZIndexBehavior.Global
+    
+    local success = pcall(function()
+        ESP_GUI.Parent = game:GetService("CoreGui")
+    end)
+    
+    if not success then
+        ESP_GUI.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+    end
+    
+    return ESP_GUI
+end
+
+local function createViewportFrame(parent)
+    local frame = Instance.new("ViewportFrame")
+    frame.Name = "ESP_" .. math.random(10000, 99999)
+    frame.BackgroundTransparency = 1
+    frame.BorderSizePixel = 0
+    frame.Size = UDim2.new(0, 100, 0, 100)
+    frame.Position = UDim2.new(0.5, 0, 0.5, 0)
+    frame.Parent = parent
+    
+    local canvas = Instance.new("CanvasGroup")
+    canvas.GroupTransparency = 0
+    canvas.Size = UDim2.new(1, 0, 1, 0)
+    canvas.Parent = frame
+    
+    for i = 1, 4 do
+        local line = Instance.new("Frame")
+        line.BackgroundColor3 = Color3.new(1, 0, 0)
+        line.BorderSizePixel = 0
+        line.Visible = true
+        line.Parent = canvas
+    end
+    
+    return frame
+end
+
+local function createESPForPlayer(player)
+    if ESP_Objects[player] then return end
+    
+    local gui = createSecureGUI()
+    if not gui then return end
+    
+    local espData = {
+        Player = player,
+        GUI = gui,
+        Viewport = createViewportFrame(gui),
+        Line = nil,
+        NameLabel = nil,
+        DistanceLabel = nil,
+        HealthBar = nil,
+        HealthBg = nil,
     }
     
-    -- Configurar valores padrão (tudo invisível)
-    data.BoxOut.Visible = false
-    data.Box.Visible = false
-    data.Name.Visible = false
-    data.Dist.Visible = false
-    data.HealthBg.Visible = false
-    data.HealthBar.Visible = false
-    data.Line.Visible = false
-    data.Dot.Visible = false
+    local line = Instance.new("Frame")
+    line.Size = UDim2.new(0, 2, 0, 2)
+    line.BackgroundColor3 = Color3.new(1, 0, 0)
+    line.BorderSizePixel = 0
+    line.Parent = gui
+    espData.Line = line
     
-    ESP[player] = data
-    return data
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Size = UDim2.new(0, 200, 0, 20)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.TextColor3 = Color3.new(1, 1, 1)
+    nameLabel.TextStrokeTransparency = 0.3
+    nameLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+    nameLabel.Font = Enum.Font.GothamBold
+    nameLabel.TextSize = 14
+    nameLabel.AnchorPoint = Vector2.new(0.5, 1)
+    nameLabel.Parent = gui
+    espData.NameLabel = nameLabel
+    
+    local distLabel = Instance.new("TextLabel")
+    distLabel.Size = UDim2.new(0, 200, 0, 20)
+    distLabel.BackgroundTransparency = 1
+    distLabel.TextColor3 = Color3.new(1, 1, 1)
+    distLabel.TextStrokeTransparency = 0.3
+    distLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+    distLabel.Font = Enum.Font.Gotham
+    distLabel.TextSize = 12
+    distLabel.AnchorPoint = Vector2.new(0.5, 0)
+    distLabel.Parent = gui
+    espData.DistanceLabel = distLabel
+    
+    local healthBg = Instance.new("Frame")
+    healthBg.Size = UDim2.new(0, 50, 0, 4)
+    healthBg.BackgroundColor3 = Color3.new(0, 0, 0)
+    healthBg.BackgroundTransparency = 0.5
+    healthBg.BorderSizePixel = 0
+    healthBg.Parent = gui
+    espData.HealthBg = healthBg
+    
+    local healthBar = Instance.new("Frame")
+    healthBar.Size = UDim2.new(1, 0, 1, 0)
+    healthBar.BackgroundColor3 = Color3.new(0, 1, 0)
+    healthBar.BorderSizePixel = 0
+    healthBar.Parent = healthBg
+    espData.HealthBar = healthBar
+    
+    ESP_Objects[player] = espData
+    return espData
 end
 
--- Variável para controlar se o ESP foi desligado
-local wasESPMasterOff = false
+-- ⚠️ ESSA É A PARTE QUE EU CORRIGI PARA VOCÊ
+local function updateESPForPlayer(player, espData)
+    if not espData or not _G.ESP_Enabled then return end
+    
+    local character = player.Character
+    if not character then return end
 
--- LOOP PRINCIPAL DO ESP
-RunService.RenderStepped:Connect(function()
-    -- SE O MASTER ESTIVER DESLIGADO, REMOVE TUDO E SAI
-    if not Config.ESP_Main then
-        if not wasESPMasterOff then
-            -- Só remove uma vez quando desliga
-            RemoveAllESP()
-            wasESPMasterOff = true
-        end
+    -- CORREÇÃO AQUI: Usamos FindFirstChild em toda a árvore do personagem
+    -- Isso garante que ele ache o HumanoidRootPart mesmo dentro da pasta "CharacterItems"
+    local rootPart = character:FindFirstChild("HumanoidRootPart", true) 
+    local head = character:FindFirstChild("Head", true)
+    
+    if not rootPart then return end
+    
+    local localPlayer = game:GetService("Players").LocalPlayer
+    local camera = workspace.CurrentCamera
+    
+    local distance = 9999
+    if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart", true) then
+        distance = (localPlayer.Character.HumanoidRootPart.Position - rootPart.Position).Magnitude
+    end
+    
+    if distance > _G.ESP_MaxDistance then
+        espData.Viewport.Visible = false
+        espData.Line.Visible = false
+        espData.NameLabel.Visible = false
+        espData.DistanceLabel.Visible = false
+        espData.HealthBg.Visible = false
         return
     end
     
-    -- Resetar flag quando liga
-    wasESPMasterOff = false
+    local screenPos, onScreen = camera:WorldToViewportPoint(rootPart.Position)
+    if not onScreen then
+        espData.Viewport.Visible = false
+        espData.Line.Visible = false
+        espData.NameLabel.Visible = false
+        espData.DistanceLabel.Visible = false
+        espData.HealthBg.Visible = false
+        return
+    end
     
-    Camera = workspace.CurrentCamera
-    if not Camera then return end
+    -- BOX
+    if _G.ESP_Box then
+        local boxSize = _G.ESP_BoxSize * 3
+        local topPos = camera:WorldToViewportPoint(head and head.Position or rootPart.Position + Vector3.new(0, 3, 0))
+        local bottomPos = camera:WorldToViewportPoint(rootPart.Position - Vector3.new(0, 3, 0))
+        
+        local height = math.abs(topPos.Y - bottomPos.Y)
+        local width = height * 0.6
+        
+        espData.Viewport.Position = UDim2.new(0, screenPos.X - width/2, 0, topPos.Y)
+        espData.Viewport.Size = UDim2.new(0, width, 0, height)
+        espData.Viewport.Visible = true
+        
+        local lines = espData.Viewport:GetChildren()[1]:GetChildren()
+        if #lines >= 4 then
+            lines[1].Size = UDim2.new(1, 0, 0, 1)
+            lines[1].Position = UDim2.new(0, 0, 0, 0)
+            lines[2].Size = UDim2.new(1, 0, 0, 1)
+            lines[2].Position = UDim2.new(0, 0, 1, 0)
+            lines[3].Size = UDim2.new(0, 1, 1, 0)
+            lines[3].Position = UDim2.new(0, 0, 0, 0)
+            lines[4].Size = UDim2.new(0, 1, 1, 0)
+            lines[4].Position = UDim2.new(1, 0, 0, 0)
+            
+            for _, line in pairs(lines) do
+                line.BackgroundColor3 = _G.ESP_Color or Color3.new(1, 0, 0)
+            end
+        end
+    else
+        espData.Viewport.Visible = false
+    end
     
-    local camPos = Camera.CFrame.Position
-    local screenSize = Camera.ViewportSize
-    local activePlayers = {}
+    -- LINE
+    if _G.ESP_Line and localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart", true) then
+        local localPos = camera:WorldToViewportPoint(localPlayer.Character.HumanoidRootPart.Position)
+        espData.Line.Size = UDim2.new(0, 2, 0, math.abs(screenPos.Y - localPos.Y))
+        espData.Line.Position = UDim2.new(0, math.min(screenPos.X, localPos.X), 0, math.min(screenPos.Y, localPos.Y))
+        espData.Line.Visible = true
+        espData.Line.BackgroundColor3 = _G.ESP_Color or Color3.new(1, 0, 0)
+    else
+        espData.Line.Visible = false
+    end
     
-    -- Processa todos os players
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            activePlayers[player] = true
+    -- NAME
+    if _G.ESP_Name then
+        espData.NameLabel.Text = player.Name
+        espData.NameLabel.Position = UDim2.new(0, screenPos.X, 0, screenPos.Y - 25)
+        espData.NameLabel.Visible = true
+    else
+        espData.NameLabel.Visible = false
+    end
+    
+    -- DISTANCE
+    if _G.ESP_Distance then
+        espData.DistanceLabel.Text = math.floor(distance) .. " studs"
+        espData.DistanceLabel.Position = UDim2.new(0, screenPos.X, 0, screenPos.Y + 25)
+        espData.DistanceLabel.Visible = true
+    else
+        espData.DistanceLabel.Visible = false
+    end
+    
+    -- HEALTH
+    if _G.ESP_Health and character:FindFirstChild("Humanoid", true) then
+        local humanoid = character:FindFirstChild("Humanoid", true)
+        if humanoid then
+            local healthPercent = humanoid.Health / humanoid.MaxHealth
             
-            local character = player.Character
-            if not character then
-                RemoveESP(player) -- Remove completamente se não tem character
-                continue
-            end
+            espData.HealthBg.Position = UDim2.new(0, screenPos.X - 25, 0, screenPos.Y + 50)
+            espData.HealthBg.Visible = true
             
-            local hrp = character:FindFirstChild("HumanoidRootPart")
-            local humanoid = character:FindFirstChildOfClass("Humanoid")
-            
-            if not hrp or not humanoid then
-                RemoveESP(player)
-                continue
-            end
-            
-            if not hrp:IsA("BasePart") or not humanoid:IsA("Humanoid") then
-                RemoveESP(player)
-                continue
-            end
-            
-            if humanoid.Health <= 0 then
-                RemoveESP(player) -- Morto = remove
-                continue
-            end
-            
-            local distance = (camPos - hrp.Position).Magnitude
-            
-            if distance > Config.ESP_RangeStuds then
-                RemoveESP(player) -- Fora do range = remove
-                continue
-            end
-            
-            local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
-            if not onScreen or screenPos.Z <= 0 then
-                RemoveESP(player) -- Fora da tela = remove
-                continue
-            end
-            
-            -- Player válido - cria ESP se não existir
-            if not ESP[player] then
-                CreateESP(player)
-            end
-            
-            local data = ESP[player]
-            if not data then continue end
-            
-            -- Calcular tamanho da box
-            local sx = math.clamp((1000 / distance), 5, 110)
-            local sy = math.clamp((1600 / distance), 8, 190)
-            local px = screenPos.X - sx / 2
-            local py = screenPos.Y - sy / 2
-            local meters = math.floor(distance * 0.28 + 0.5)
-            
-            -- BOX
-            if Config.ESP_Boxes then
-                data.BoxOut.Position = Vector2.new(px - 1, py - 1)
-                data.BoxOut.Size = Vector2.new(sx + 2, sy + 2)
-                data.BoxOut.Color = Color3.fromRGB(0, 0, 0)
-                data.BoxOut.Thickness = 3
-                data.BoxOut.Filled = false
-                data.BoxOut.Transparency = 0.5
-                data.BoxOut.Visible = true
-                
-                data.Box.Position = Vector2.new(px, py)
-                data.Box.Size = Vector2.new(sx, sy)
-                data.Box.Color = Color3.fromRGB(140, 30, 30)
-                data.Box.Thickness = 1
-                data.Box.Filled = false
-                data.Box.Transparency = 0.6
-                data.Box.Visible = true
-            else
-                data.BoxOut.Visible = false
-                data.Box.Visible = false
-            end
-            
-            -- NOME
-            if Config.ESP_Names then
-                data.Name.Text = player.Name
-                data.Name.Position = Vector2.new(screenPos.X, py - 20)
-                data.Name.Color = Color3.fromRGB(255, 255, 255)
-                data.Name.Size = 13
-                data.Name.Font = 2
-                data.Name.Center = true
-                data.Name.Outline = true
-                data.Name.OutlineColor = Color3.fromRGB(0, 0, 0)
-                data.Name.Visible = true
-            else
-                data.Name.Visible = false
-            end
-            
-            -- DISTÂNCIA
-            if Config.ESP_Distance then
-                local distText = meters >= 1000 and string.format("%.1fkm", meters / 1000) or meters .. "m"
-                data.Dist.Text = distText
-                data.Dist.Position = Vector2.new(screenPos.X, py - 8)
-                data.Dist.Color = Color3.fromRGB(255, 200, 50)
-                data.Dist.Size = 12
-                data.Dist.Font = 2
-                data.Dist.Center = true
-                data.Dist.Outline = true
-                data.Dist.OutlineColor = Color3.fromRGB(0, 0, 0)
-                data.Dist.Visible = true
-            else
-                data.Dist.Visible = false
-            end
-            
-            -- VIDA
-            if Config.ESP_Health then
-                local hp = humanoid.Health / math.max(humanoid.MaxHealth, 1)
-                data.HealthBg.Position = Vector2.new(px - 6, py - 1)
-                data.HealthBg.Size = Vector2.new(4, sy + 2)
-                data.HealthBg.Color = Color3.fromRGB(10, 10, 10)
-                data.HealthBg.Filled = true
-                data.HealthBg.Transparency = 0.5
-                data.HealthBg.Visible = true
-                
-                data.HealthBar.Position = Vector2.new(px - 5, py + sy - sy * hp)
-                data.HealthBar.Size = Vector2.new(2, sy * hp)
-                data.HealthBar.Color = Color3.fromHSV(hp * 0.33, 1, 1)
-                data.HealthBar.Filled = true
-                data.HealthBar.Transparency = 0.2
-                data.HealthBar.Visible = true
-            else
-                data.HealthBg.Visible = false
-                data.HealthBar.Visible = false
-            end
-            
-            -- LINHAS
-            if Config.ESP_Lines then
-                data.Line.From = Vector2.new(screenSize.X / 2, screenSize.Y)
-                data.Line.To = Vector2.new(screenPos.X, py + sy / 2)
-                data.Line.Color = Color3.fromRGB(140, 30, 30)
-                data.Line.Thickness = 1
-                data.Line.Transparency = 0.4
-                data.Line.Visible = true
-            else
-                data.Line.Visible = false
-            end
-            
-            -- HEAD DOT
-            if Config.ESP_Dot then
-                local head = character:FindFirstChild("Head")
-                if head then
-                    local headPos = Camera:WorldToViewportPoint(head.Position)
-                    data.Dot.Position = Vector2.new(headPos.X, headPos.Y)
-                    data.Dot.Color = Color3.fromRGB(255, 255, 255)
-                    data.Dot.Filled = true
-                    data.Dot.Transparency = 0.3
-                    data.Dot.Radius = 3
-                    data.Dot.Visible = true
-                else
-                    data.Dot.Visible = false
+            espData.HealthBar.Size = UDim2.new(healthPercent, 0, 1, 0)
+            espData.HealthBar.BackgroundColor3 = Color3.new(1 - healthPercent, healthPercent, 0)
+        end
+    else
+        espData.HealthBg.Visible = false
+    end
+end
+
+local function mainESPLoop()
+    if espLoopRunning then return end
+    espLoopRunning = true
+    
+    while _G.ESP_Enabled do
+        task.wait(0.03)
+        
+        local players = game:GetService("Players"):GetPlayers()
+        local localPlayer = game:GetService("Players").LocalPlayer
+        
+        for _, player in pairs(players) do
+            if player ~= localPlayer and player:IsA("Player") then
+                local espData = ESP_Objects[player]
+                if not espData then
+                    espData = createESPForPlayer(player)
                 end
-            else
-                data.Dot.Visible = false
+                
+                if espData then
+                    pcall(function()
+                        updateESPForPlayer(player, espData)
+                    end)
+                end
             end
         end
     end
     
-    -- Remove ESP de players que saíram do jogo
-    for player, data in pairs(ESP) do
-        if not activePlayers[player] then
-            RemoveESP(player)
+    espLoopRunning = false
+end
+
+local function clearAllESP()
+    for player, espData in pairs(ESP_Objects) do
+        if espData.GUI then
+            espData.GUI:Destroy()
         end
+        ESP_Objects[player] = nil
+    end
+    ESP_GUI = nil
+end
+
+Toggles.ESP_Enabled:OnChanged(function()
+    if _G.ESP_Enabled then
+        task.spawn(mainESPLoop)
+    else
+        clearAllESP()
     end
 end)
 
--- LIMPEZA quando player sai
-Players.PlayerRemoving:Connect(function(player)
-    RemoveESP(player)
+-- ============================================================
+-- UI SETTINGS E MANAGERS
+-- ============================================================
+
+local MenuGroup = Tabs["UI Settings"]:AddLeftGroupbox("Menu", "wrench")
+MenuGroup:AddToggle("KeybindMenuOpen", {
+    Default = Library.KeybindFrame.Visible,
+    Text = "Open Keybind Menu",
+    Callback = function(value) Library.KeybindFrame.Visible = value end,
+})
+MenuGroup:AddToggle("ShowCustomCursor", {
+    Text = "Custom Cursor",
+    Default = Library.ShowCustomCursor,
+    Callback = function(Value) Library.ShowCustomCursor = Value end,
+})
+MenuGroup:AddDropdown("NotificationSide", {
+    Values = { "Left", "Right" },
+    Default = "Right",
+    Text = "Notification Side",
+    Callback = function(Value) Library:SetNotifySide(Value) end,
+})
+MenuGroup:AddDropdown("DPIDropdown", {
+    Values = { "50%", "75%", "100%", "125%", "150%", "175%", "200%" },
+    Default = "100%",
+    Text = "DPI Scale",
+    Callback = function(Value)
+        Value = Value:gsub("%%", "")
+        local DPI = tonumber(Value)
+        Library:SetDPIScale(DPI)
+    end,
+})
+MenuGroup:AddDivider()
+MenuGroup:AddLabel("Menu bind"):AddKeyPicker("MenuKeybind", {
+    Default = "RightShift", NoUI = true, Text = "Menu keybind"
+})
+MenuGroup:AddButton("Unload Safely", function()
+    clearAllESP()
+    _G.ESP_Enabled = false
+    Library:Unload()
 end)
+
+Library.ToggleKeybind = Options.MenuKeybind
+ThemeManager:SetLibrary(Library)
+SaveManager:SetLibrary(Library)
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({ "MenuKeybind" })
+ThemeManager:SetFolder("Obsidian")
+SaveManager:SetFolder("Obsidian/Configs")
+SaveManager:BuildConfigSection(Tabs["UI Settings"])
+ThemeManager:ApplyToTab(Tabs["UI Settings"])
+SaveManager:LoadAutoloadConfig()
+
+Library:Notify({
+    Title = "Obsidian ESP - Corrigido para CharacterItems",
+    Description = "✅ Agora encontra HumanoidRootPart dentro de pastas\n✅ Apenas Players\n✅ Até 10.000 studs",
+    Time = 6,
+})
