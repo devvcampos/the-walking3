@@ -3,7 +3,7 @@
 -- =============================================================================
 
 -- Carrega a nova biblioteca que você me enviou
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/Library.lua"))() -- (Substitua pelo link real da biblioteca caso esteja usando um repositório diferente, mas o código da lib já está pronto)
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/devvcampos/the-walking3/refs/heads/main/Library.lua"))() -- (Substitua pelo link real da biblioteca caso esteja usando um repositório diferente, mas o código da lib já está pronto)
 
 -- ============================================
 -- VARIÁVEIS GLOBAIS DE CONFIGURAÇÃO
@@ -38,7 +38,7 @@ _G.Aimbot = {
 -- ============================================
 local Window = Library:Window({
     Name = "Obsidian ESP",
-    SubTitle = "New UI",
+    SubTitle = "Minha UI",
     ExpiresIn = "Forever"
 })
 
