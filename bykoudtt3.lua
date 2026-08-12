@@ -103,7 +103,7 @@ end
 -- JANELA PRINCIPAL
 -- ============================================
 local Window = Library:Window({
-    Name = "Obsidian ESP",
+    Name = "KOUDZERA -- script by devvcampos",
     SubTitle = "v2.0 - Samet Lib",
     ExpiresIn = "∞"
 })
@@ -745,6 +745,6 @@ end)
 -- ============================================
 task.wait(0.5)
 UpdateFOVCircle()
-Library:Notification("✅ Obsidian ESP carregado! (Samet Lib)", 4, nil)
+Library:Notification("✅ KOUDZERA -- script by devvcampos", 4, nil)
 
 return Library
