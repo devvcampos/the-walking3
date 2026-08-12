@@ -1,868 +1,822 @@
 -- =============================================================================
--- OBSIDIAN ULTRA PREMIUM - VERSÃO COMPLETA (2D/3D + SKELETON + CHAMS + FOV)
+-- OBSIDIAN ESP - NOVA UI (Biblioteca "Balright")
 -- =============================================================================
 
-local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
-local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
-local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
-local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
+-- Carrega a nova biblioteca que você me enviou
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/Library.lua"))() -- (Substitua pelo link real da biblioteca caso esteja usando um repositório diferente, mas o código da lib já está pronto)
 
-local Options = Library.Options
-local Toggles = Library.Toggles
-
-local Window = Library:CreateWindow({
-    Title = "Obsidian Ultra Premium",
-    Footer = "v8.0 - Full Edition",
-    Icon = 95816097006870,
-    NotifySide = "Right",
-    ShowCustomCursor = true,
-})
-
-local Tabs = {
-    Main = Window:AddTab("Main", "user"),
-    ESP = Window:AddTab("ESP Settings", "eye"),
-    Visuals = Window:AddTab("Visuals & Chams", "palette"),
-    ["UI Settings"] = Window:AddTab("UI Settings", "settings"),
+-- ============================================
+-- VARIÁVEIS GLOBAIS DE CONFIGURAÇÃO
+-- ============================================
+_G.Settings_ESP = {
+    Enabled = false,
+    Box = true,
+    Name = true,
+    Distance = false,
+    Health = true,
+    Tracer = true,
+    Skeleton = false,
+    TeamCheck = true,
+    Corpses = false,
+    MaxDistance = 10000,
+    VisibilityCheck = true,
+    Scale = 100,
+    DangerColor = Color3.fromRGB(255, 60, 60),
+    SafeColor = Color3.fromRGB(130, 255, 130),
+    VisibleColor = Color3.fromRGB(220, 220, 220),
 }
 
--- =============================================================================
--- VARIÁVEIS GLOBAIS (INICIALIZAÇÃO)
--- =============================================================================
-_G.ESP_Enabled = false
-_G.ESP_Box = false
-_G.ESP_Box3D = true
-_G.ESP_BoxStyle = "Cheia"
-_G.ESP_Name = false
-_G.ESP_Distance = false
-_G.ESP_Health = false
-_G.ESP_Tracer = false
-_G.ESP_Circle = false
-_G.ESP_HeadDot = false
-_G.ESP_Skeleton = false
-_G.ESP_Chams = false
-_G.ESP_TeamCheck = false
-_G.ESP_VisibilityCheck = false
-_G.ESP_MaxDistance = 10000
-_G.ESP_VisibilityFOV = 120
-_G.ESP_CircleSize = 3
+_G.Aimbot = {
+    Enabled = false,
+    FOV = 120,
+    Mode = "Cabeça (Head)",
+    CircleEnabled = true,
+}
 
--- Cores
-_G.ESP_DangerColor = Color3.new(1, 0, 0)
-_G.ESP_SafeColor = Color3.new(0, 1, 0)
-_G.ESP_ChamsColor = Color3.new(0, 0, 1)
+-- ============================================
+-- CRIAÇÃO DA JANELA PRINCIPAL E CATEGORIAS
+-- ============================================
+local Window = Library:Window({
+    Name = "Obsidian ESP",
+    SubTitle = "New UI",
+    ExpiresIn = "Forever"
+})
 
--- =============================================================================
--- ABA: ESP SETTINGS
--- =============================================================================
-local ESPGroup = Tabs.ESP:AddLeftGroupbox("ESP Configuration", "eye")
+-- Organizando as abas em categorias
+Window:Category("Cheats")
+local ESPPage = Window:Page({ Name = "ESP Configuration", Icon = "136879043989014" })
+local AimbotPage = Window:Page({ Name = "Aimbot", Icon = "136879043989014" })
 
-ESPGroup:AddToggle("ESP_Enabled", {
-    Text = "Master ESP Switch",
+Window:Category("Utilities")
+local TeleportPage = Window:Page({ Name = "Teleports", Icon = "136879043989014" })
+
+-- ============================================
+-- ABA: ESP CONFIGURATION
+-- ============================================
+local ESPSub = ESPPage:SubPage({ Name = "ESP Config" })
+local VisualSub = ESPPage:SubPage({ Name = "Visuals" })
+
+-- Configurações do ESP
+local ESPGroup = ESPSub:Section({ Name = "ESP Configuration", Icon = "136879043989014", Side = 1 })
+ESPGroup:Toggle({
+    Name = "Ligar ESP",
+    Flag = "ESP_Enabled",
     Default = false,
+    Callback = function(Value)
+        _G.Settings_ESP.Enabled = Value
+        if not _G.Settings_ESP.Enabled then
+            clearAllESP()
+        end
+        manageCorpseConnection()
+    end
 })
-Toggles.ESP_Enabled:OnChanged(function()
-    _G.ESP_Enabled = Toggles.ESP_Enabled.Value
-    if not _G.ESP_Enabled then clearAllESP() end
-end)
 
-ESPGroup:AddDivider()
+ESPGroup:Toggle({ Name = "Caixa", Flag = "ESP_Box", Default = true, Callback = function(v) _G.Settings_ESP.Box = v end })
+ESPGroup:Toggle({ Name = "Nome", Flag = "ESP_Name", Default = true, Callback = function(v) _G.Settings_ESP.Name = v end })
+ESPGroup:Toggle({ Name = "Distância", Flag = "ESP_Distance", Default = false, Callback = function(v) _G.Settings_ESP.Distance = v end })
+ESPGroup:Toggle({ Name = "Barra de Vida", Flag = "ESP_Health", Default = true, Callback = function(v) _G.Settings_ESP.Health = v end })
+ESPGroup:Toggle({ Name = "Linha (Tracer)", Flag = "ESP_Tracer", Default = true, Callback = function(v) _G.Settings_ESP.Tracer = v end })
+ESPGroup:Toggle({ Name = "Check de Time", Flag = "ESP_TeamCheck", Default = true, Callback = function(v) _G.Settings_ESP.TeamCheck = v end })
+ESPGroup:Toggle({ Name = "Skeleton ESP (Bones)", Flag = "ESP_Skeleton", Default = false, Callback = function(v) _G.Settings_ESP.Skeleton = v end })
+ESPGroup:Toggle({ Name = "Corpos Deads (Chams)", Flag = "ESP_Corpses", Default = false, Callback = function(v)
+    _G.Settings_ESP.Corpses = v
+    manageCorpseConnection()
+end })
 
-ESPGroup:AddToggle("ESP_Box", {
-    Text = "Box ESP",
-    Default = false,
-})
-Toggles.ESP_Box:OnChanged(function() _G.ESP_Box = Toggles.ESP_Box.Value end)
-
-ESPGroup:AddToggle("ESP_Box3D", {
-    Text = "3D Box Mode (ViewportFrame)",
-    Default = true,
-    Tooltip = "Ativa a caixa 3D otimizada",
-})
-Toggles.ESP_Box3D:OnChanged(function() _G.ESP_Box3D = Toggles.ESP_Box3D.Value end)
-
-ESPGroup:AddDropdown("ESP_BoxStyle", {
-    Values = { "Cheia", "Esquadrinhada (Cantos)" },
-    Default = 1,
-    Text = "Estilo da Caixa (2D)",
-})
-Options.ESP_BoxStyle:OnChanged(function() _G.ESP_BoxStyle = Options.ESP_BoxStyle.Value end)
-
-ESPGroup:AddToggle("ESP_Name", {
-    Text = "Name ESP",
-    Default = false,
-})
-Toggles.ESP_Name:OnChanged(function() _G.ESP_Name = Toggles.ESP_Name.Value end)
-
-ESPGroup:AddToggle("ESP_Distance", {
-    Text = "Distance ESP",
-    Default = false,
-})
-Toggles.ESP_Distance:OnChanged(function() _G.ESP_Distance = Toggles.ESP_Distance.Value end)
-
-ESPGroup:AddToggle("ESP_Health", {
-    Text = "Health Bar",
-    Default = false,
-})
-Toggles.ESP_Health:OnChanged(function() _G.ESP_Health = Toggles.ESP_Health.Value end)
-
-ESPGroup:AddToggle("ESP_Tracer", {
-    Text = "Tracer (Line)",
-    Default = false,
-})
-Toggles.ESP_Tracer:OnChanged(function() _G.ESP_Tracer = Toggles.ESP_Tracer.Value end)
-
-ESPGroup:AddToggle("ESP_Circle", {
-    Text = "3D Ground Circle",
-    Default = false,
-})
-Toggles.ESP_Circle:OnChanged(function() _G.ESP_Circle = Toggles.ESP_Circle.Value end)
-
-ESPGroup:AddToggle("ESP_HeadDot", {
-    Text = "Head Dot (Ponto na cabeça)",
-    Default = false,
-})
-Toggles.ESP_HeadDot:OnChanged(function() _G.ESP_HeadDot = Toggles.ESP_HeadDot.Value end)
-
-ESPGroup:AddToggle("ESP_Skeleton", {
-    Text = "Skeleton ESP (Esqueleto)",
-    Default = false,
-})
-Toggles.ESP_Skeleton:OnChanged(function() _G.ESP_Skeleton = Toggles.ESP_Skeleton.Value end)
-
-ESPGroup:AddToggle("ESP_TeamCheck", {
-    Text = "Team Check (Aliado/Inimigo)",
-    Default = false,
-})
-Toggles.ESP_TeamCheck:OnChanged(function() _G.ESP_TeamCheck = Toggles.ESP_TeamCheck.Value end)
-
--- =============================================================================
--- ABA: VISUALS & CHAMS
--- =============================================================================
-local VisualGroup = Tabs.Visuals:AddLeftGroupbox("Visual & Chams Settings", "palette")
-
-VisualGroup:AddSlider("ESP_MaxDistance", {
-    Text = "Max Distance",
+-- Configurações Visuais
+local VisualGroup = VisualSub:Section({ Name = "Visual Settings", Icon = "136879043989014", Side = 1 })
+VisualGroup:Slider({
+    Name = "Distância Máxima",
+    Flag = "ESP_MaxDistance",
     Default = 10000,
     Min = 500,
-    Max = 100000,
-    Rounding = 0,
+    Max = 500000,
     Suffix = "m",
+    Callback = function(Value)
+        _G.Settings_ESP.MaxDistance = Value
+    end
 })
-Options.ESP_MaxDistance:OnChanged(function() _G.ESP_MaxDistance = Options.ESP_MaxDistance.Value end)
-
-VisualGroup:AddSlider("ESP_CircleSize", {
-    Text = "Circle Size",
-    Default = 3,
-    Min = 1,
-    Max = 10,
-    Rounding = 1,
-    Suffix = "x",
+VisualGroup:Slider({
+    Name = "Escala do ESP",
+    Flag = "ESP_Scale",
+    Default = 100,
+    Min = 0,
+    Max = 200,
+    Suffix = "%",
+    Callback = function(Value)
+        _G.Settings_ESP.Scale = Value
+    end
 })
-Options.ESP_CircleSize:OnChanged(function() _G.ESP_CircleSize = Options.ESP_CircleSize.Value end)
 
-VisualGroup:AddLabel("Danger Color"):AddColorPicker("ESP_DangerColor", {
-    Default = Color3.new(1, 0, 0),
-    Title = "Inimigo",
-    Transparency = 0,
+VisualGroup:Label("Cor do Inimigo"):Colorpicker({
+    Flag = "ESP_DangerColor",
+    Default = _G.Settings_ESP.DangerColor,
+    Callback = function(Value)
+        _G.Settings_ESP.DangerColor = Value
+    end
 })
-Options.ESP_DangerColor:OnChanged(function() _G.ESP_DangerColor = Options.ESP_DangerColor.Value end)
-
-VisualGroup:AddLabel("Safe Color"):AddColorPicker("ESP_SafeColor", {
-    Default = Color3.new(0, 1, 0),
-    Title = "Aliado",
-    Transparency = 0,
+VisualGroup:Label("Cor do Visível"):Colorpicker({
+    Flag = "ESP_VisibleColor",
+    Default = _G.Settings_ESP.VisibleColor,
+    Callback = function(Value)
+        _G.Settings_ESP.VisibleColor = Value
+    end
 })
-Options.ESP_SafeColor:OnChanged(function() _G.ESP_SafeColor = Options.ESP_SafeColor.Value end)
-
--- FOV CHECK
-VisualGroup:AddDivider()
-VisualGroup:AddToggle("ESP_VisibilityCheck", {
-    Text = "Visibility Check (FOV)",
-    Default = false,
-    Tooltip = "Só desenha o ESP se o jogador estiver no seu campo de visão",
+VisualGroup:Label("Cor do Aliado"):Colorpicker({
+    Flag = "ESP_SafeColor",
+    Default = _G.Settings_ESP.SafeColor,
+    Callback = function(Value)
+        _G.Settings_ESP.SafeColor = Value
+    end
 })
-Toggles.ESP_VisibilityCheck:OnChanged(function() _G.ESP_VisibilityCheck = Toggles.ESP_VisibilityCheck.Value end)
+VisualGroup:Toggle({ Name = "Check de Visibilidade (Raycast)", Flag = "ESP_VisibilityCheck", Default = true, Callback = function(v) _G.Settings_ESP.VisibilityCheck = v end })
 
-VisualGroup:AddSlider("ESP_VisibilityFOV", {
-    Text = "FOV Angle",
-    Default = 120,
-    Min = 30,
-    Max = 180,
-    Rounding = 0,
-    Suffix = "°",
-})
-Options.ESP_VisibilityFOV:OnChanged(function() _G.ESP_VisibilityFOV = Options.ESP_VisibilityFOV.Value end)
+-- ============================================
+-- ABA: TELEPORTS
+-- ============================================
+local TeleportSub = TeleportPage:SubPage({ Name = "Locais" })
 
--- CHAMS
-VisualGroup:AddDivider()
-VisualGroup:AddToggle("ESP_Chams", {
-    Text = "Enable Chams (Wallhack)",
-    Default = false,
-})
-Toggles.ESP_Chams:OnChanged(function() _G.ESP_Chams = Toggles.ESP_Chams.Value end)
-
-VisualGroup:AddLabel("Chams Color"):AddColorPicker("ESP_ChamsColor", {
-    Default = Color3.new(0, 0, 1),
-    Title = "Cor do Chams",
-    Transparency = 0.5,
-})
-Options.ESP_ChamsColor:OnChanged(function() _G.ESP_ChamsColor = Options.ESP_ChamsColor.Value end)
-
--- =============================================================================
--- SISTEMA PREMIUM DE ESP (BACKEND)
--- =============================================================================
+local HospitalSection = TeleportSub:Section({ Name = "🏥 Hospitais", Icon = "136879043989014", Side = 1 })
+local MilitarySection = TeleportSub:Section({ Name = "⚔️ Militares", Icon = "136879043989014", Side = 2 })
+local CitySection = TeleportSub:Section({ Name = "🏙️ Cidades", Icon = "136879043989014", Side = 2 })
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
+local function teleportTo(posX, posY, posZ)
+    local localChar = LocalPlayer.Character
+    if localChar and localChar:FindFirstChild("HumanoidRootPart") then
+        localChar.HumanoidRootPart.CFrame = CFrame.new(posX, posY, posZ)
+        Library:Notification("Teleport", 2, nil)
+    else
+        Library:Notification("Erro: Personagem não encontrado.", 2, nil)
+    end
+end
+
+HospitalSection:Button({ Name = "🏥 Hospital Central", Callback = function() teleportTo(-2178.95, 173.73 + 3.5, 4970.18) end })
+MilitarySection:Button({ Name = "🛰️ Satélite", Callback = function() teleportTo(-2009.40, 349.97 + 3.5, 897.70) end })
+MilitarySection:Button({ Name = "🚨 PD (Policia)", Callback = function() teleportTo(4643.18, 121.35 + 3.5, -1044.83) end })
+MilitarySection:Button({ Name = "🛡️ Bunker", Callback = function() teleportTo(5327.28, 128.99 + 3.5, -5802.90) end })
+CitySection:Button({ Name = "⛓️ Prisão", Callback = function() teleportTo(5166.66, 116.43 + 3.5, -3402.79) end })
+CitySection:Button({ Name = "🏪 Big Spot", Callback = function() teleportTo(1765.86, 241.35 + 3.5, 1452.03) end })
+
+-- ============================================
+-- ABA: AIMBOT + CÍRCULO DE FOV
+-- ============================================
+local AimbotSub = AimbotPage:SubPage({ Name = "Aimbot" })
+local AimbotGroup = AimbotSub:Section({ Name = "Configurações", Icon = "136879043989014", Side = 1 })
+
+-- Círculo de FOV (GUI visual)
+local CircleGui = Instance.new("ScreenGui")
+CircleGui.Name = "FOVCircle_" .. math.random(10000, 99999)
+CircleGui.ResetOnSpawn = false
+CircleGui.IgnoreGuiInset = true
+CircleGui.DisplayOrder = 100
+CircleGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local CircleFrame = Instance.new("Frame")
+CircleFrame.Name = "Circle"
+CircleFrame.BackgroundTransparency = 1
+CircleFrame.BorderSizePixel = 1
+CircleFrame.BorderColor3 = Color3.fromRGB(255, 255, 255)
+CircleFrame.Visible = false
+CircleFrame.Parent = CircleGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(1, 0)
+UICorner.Parent = CircleFrame
+
+local function UpdateFOVCircle()
+    if not _G.Aimbot.CircleEnabled then
+        CircleFrame.Visible = false
+        return
+    end
+    local vpSize = Camera.ViewportSize
+    local fov = _G.Aimbot.FOV
+    local radius = math.clamp(fov * 3, 20, vpSize.Y / 1.5)
+    local size = radius * 2
+    CircleFrame.Position = UDim2.new(0.5, -radius, 0.5, -radius)
+    CircleFrame.Size = UDim2.new(0, size, 0, size)
+    CircleFrame.Visible = true
+end
+
+AimbotGroup:Toggle({
+    Name = "Ativar Aimbot (Snap)",
+    Flag = "Aimbot_Enabled",
+    Default = false,
+    Callback = function(Value)
+        _G.Aimbot.Enabled = Value
+    end
+})
+AimbotGroup:Slider({
+    Name = "Campo de Visão (FOV)",
+    Flag = "Aimbot_FOV",
+    Default = 120,
+    Min = 20,
+    Max = 180,
+    Suffix = "°",
+    Callback = function(Value)
+        _G.Aimbot.FOV = Value
+        UpdateFOVCircle()
+    end
+})
+AimbotGroup:Dropdown({
+    Name = "Alvo Preferido",
+    Flag = "Aimbot_Mode",
+    Items = { "Cabeça (Head)", "Torso (Body)" },
+    Default = "Cabeça (Head)",
+    Callback = function(Value)
+        _G.Aimbot.Mode = Value
+    end
+})
+AimbotGroup:Toggle({
+    Name = "Mostrar Círculo de FOV",
+    Flag = "Aimbot_Circle",
+    Default = true,
+    Callback = function(Value)
+        _G.Aimbot.CircleEnabled = Value
+        UpdateFOVCircle()
+    end
+})
+
+-- ============================================
+-- LÓGICA DO SCRIPT (ESP, AIMBOT, ESQUELETO, CORPOS)
+-- ============================================
+
 local espElements = {}
 local ESP_GUI = nil
+local espConnection = nil
+local frameCounter = 0
 
--- Função para criar GUI Mestre
-local function createMasterGUI()
+local corpseCache = {}
+local corpseConnection = nil
+local corpseFrameCounter = 0
+local skeletonCache = {}
+
+local function isPlayerVisible(targetPos, ignoreList)
+    if not _G.Settings_ESP.VisibilityCheck then return true end
+    local origin = Camera.CFrame.Position
+    local direction = (targetPos - origin).Unit
+    local distance = (targetPos - origin).Magnitude
+    local params = RaycastParams.new()
+    params.FilterDescendantsInstances = ignoreList
+    params.FilterType = Enum.RaycastFilterType.Blacklist
+    params.IgnoreWater = true
+    local result = workspace:Raycast(origin, direction * distance, params)
+    return result == nil
+end
+
+local function isPlayerAlly(player)
+    if not _G.Settings_ESP.TeamCheck then return false end
+    return player.TeamColor == LocalPlayer.TeamColor
+end
+
+local function getMasterGUI()
     if ESP_GUI then return ESP_GUI end
-    
     ESP_GUI = Instance.new("ScreenGui")
-    ESP_GUI.Name = "ObsidianPremium_" .. math.random(100000, 999999)
+    ESP_GUI.Name = "ESP_Minimal"
     ESP_GUI.ResetOnSpawn = false
     ESP_GUI.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     ESP_GUI.IgnoreGuiInset = true
-    ESP_GUI.ScreenInsets = Enum.ScreenInsets.None
     ESP_GUI.DisplayOrder = 999999
-    
-    local success = pcall(function()
-        ESP_GUI.Parent = game:GetService("CoreGui")
-    end)
-    
-    if not success then
-        ESP_GUI.Parent = LocalPlayer:WaitForChild("PlayerGui")
-    end
-    
+    local success = pcall(function() ESP_GUI.Parent = game:GetService("CoreGui") end)
+    if not success then ESP_GUI.Parent = LocalPlayer:WaitForChild("PlayerGui") end
     return ESP_GUI
 end
 
--- Team Check
-local function isPlayerAlly(player)
-    if not _G.ESP_TeamCheck then return false end
-    if player.TeamColor == LocalPlayer.TeamColor and LocalPlayer.TeamColor ~= nil then
-        return true
-    end
-    return false
-end
-
--- FOV Check (Verifica se o jogador está dentro do campo de visão)
-local function isPlayerInFOV(playerPos)
-    if not _G.ESP_VisibilityCheck then return true end
-    
-    local camera = workspace.CurrentCamera
-    local cameraCFrame = camera.CFrame
-    local lookVector = cameraCFrame.LookVector
-    local cameraPos = cameraCFrame.Position
-    
-    local targetVector = (playerPos - cameraPos).Unit
-    local dotProduct = lookVector:Dot(targetVector)
-    local angle = math.deg(math.acos(dotProduct))
-    
-    return angle <= _G.ESP_VisibilityFOV
-end
-
--- Cria os elementos visuais
-local function createESPForPlayer(player)
+function createESPForPlayer(player)
     if espElements[player] then return end
-    
-    local masterGUI = createMasterGUI()
-    if not masterGUI then return end
-    
-    local holder = Instance.new("Folder")
-    holder.Name = "ESP_" .. player.UserId
-    holder.Parent = masterGUI
-    
-    -- ==================== BOX 3D (ViewportFrame) ====================
-    local box3D = Instance.new("ViewportFrame")
-    box3D.Name = "Box3D"
-    box3D.BackgroundTransparency = 1
-    box3D.BorderSizePixel = 0
-    box3D.Visible = false
-    box3D.Parent = holder
-    
-    local canvas = Instance.new("CanvasGroup")
-    canvas.GroupTransparency = 0
-    canvas.Size = UDim2.new(1, 0, 1, 0)
-    canvas.Parent = box3D
-    
-    for i = 1, 4 do
-        local line = Instance.new("Frame")
-        line.BackgroundColor3 = Color3.new(1, 1, 1)
-        line.BorderSizePixel = 0
-        line.Visible = true
-        line.Parent = canvas
-    end
-    
-    -- ==================== BOX 2D (Alternativa) ====================
-    local box2D = Instance.new("Frame")
-    box2D.Name = "Box2D"
-    box2D.BackgroundTransparency = 1
-    box2D.BorderSizePixel = 0
-    box2D.Visible = false
-    box2D.Parent = holder
-    
-    local top = Instance.new("Frame")
-    top.Size = UDim2.new(1, 0, 0, 1)
-    top.Position = UDim2.new(0, 0, 0, 0)
-    top.BorderSizePixel = 0
-    top.Parent = box2D
-    
-    local bottom = Instance.new("Frame")
-    bottom.Size = UDim2.new(1, 0, 0, 1)
-    bottom.Position = UDim2.new(0, 0, 1, 0)
-    bottom.BorderSizePixel = 0
-    bottom.Parent = box2D
-    
-    local left = Instance.new("Frame")
-    left.Size = UDim2.new(0, 1, 1, 0)
-    left.Position = UDim2.new(0, 0, 0, 0)
-    left.BorderSizePixel = 0
-    left.Parent = box2D
-    
-    local right = Instance.new("Frame")
-    right.Size = UDim2.new(0, 1, 1, 0)
-    right.Position = UDim2.new(1, 0, 0, 0)
-    right.BorderSizePixel = 0
-    right.Parent = box2D
-    
-    -- ==================== TRACER ====================
+    local gui = getMasterGUI()
+    local folder = Instance.new("Folder")
+    folder.Name = player.UserId
+    folder.Parent = gui
+
+    local box = Instance.new("Frame")
+    box.Name = "Box"
+    box.BackgroundTransparency = 1
+    box.BorderSizePixel = 0
+    box.Size = UDim2.new(0, 100, 0, 100)
+    box.Visible = false
+    box.Parent = folder
+
+    local boxStroke = Instance.new("UIStroke")
+    boxStroke.Name = "Stroke"
+    boxStroke.Thickness = 1.2
+    boxStroke.Color = Color3.new(1,1,1)
+    boxStroke.Transparency = 0.2
+    boxStroke.Parent = box
+
     local tracer = Instance.new("Frame")
     tracer.Name = "Tracer"
-    tracer.BackgroundColor3 = Color3.new(1, 1, 1)
+    tracer.BackgroundColor3 = Color3.new(1,1,1)
     tracer.BorderSizePixel = 0
+    tracer.Size = UDim2.new(0, 1, 0, 1)
     tracer.Visible = false
-    tracer.Parent = holder
-    
-    -- ==================== CIRCLE ====================
-    local circle = Instance.new("Frame")
-    circle.Name = "Circle"
-    circle.BackgroundTransparency = 0.5
-    circle.BorderSizePixel = 0
-    circle.Visible = false
-    circle.Parent = holder
-    local circleCorner = Instance.new("UICorner")
-    circleCorner.CornerRadius = UDim.new(1, 0)
-    circleCorner.Parent = circle
-    
-    -- ==================== HEAD DOT ====================
-    local headDot = Instance.new("Frame")
-    headDot.Name = "HeadDot"
-    headDot.BackgroundColor3 = Color3.new(1, 1, 1)
-    headDot.BorderSizePixel = 0
-    headDot.Visible = false
-    headDot.Parent = holder
-    local dotCorner = Instance.new("UICorner")
-    dotCorner.CornerRadius = UDim.new(1, 0)
-    dotCorner.Parent = headDot
-    
-    -- ==================== SKELETON ====================
-    local skeletonFolder = Instance.new("Folder")
-    skeletonFolder.Name = "Skeleton"
-    skeletonFolder.Parent = holder
-    
-    local skeletonParts = {}
-    local joints = {"Head", "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg", "Left Hand", "Right Hand", "Left Foot", "Right Foot"}
-    for _, name in pairs(joints) do
-        local line = Instance.new("Frame")
-        line.Name = name
-        line.BackgroundColor3 = Color3.new(1, 1, 1)
-        line.BorderSizePixel = 0
-        line.Visible = false
-        line.Parent = skeletonFolder
-        table.insert(skeletonParts, line)
-    end
-    
-    -- ==================== NOME, DISTÂNCIA E VIDA ====================
+    tracer.Parent = folder
+
     local nameLabel = Instance.new("TextLabel")
     nameLabel.Name = "Name"
     nameLabel.BackgroundTransparency = 1
-    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    nameLabel.TextColor3 = Color3.new(1,1,1)
     nameLabel.TextSize = 13
-    nameLabel.Font = Enum.Font.GothamBold
-    nameLabel.TextStrokeTransparency = 0.5
-    nameLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    nameLabel.Font = Enum.Font.GothamMedium
+    nameLabel.TextStrokeTransparency = 0.8
+    nameLabel.TextStrokeColor3 = Color3.new(0,0,0)
     nameLabel.TextXAlignment = Enum.TextXAlignment.Center
     nameLabel.Visible = false
-    nameLabel.Parent = holder
-    
+    nameLabel.Parent = folder
+
     local distLabel = Instance.new("TextLabel")
     distLabel.Name = "Distance"
     distLabel.BackgroundTransparency = 1
-    distLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
-    distLabel.TextSize = 12
+    distLabel.TextColor3 = Color3.fromRGB(180,180,180)
+    distLabel.TextSize = 11
     distLabel.Font = Enum.Font.Gotham
-    distLabel.TextStrokeTransparency = 0.5
-    distLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    distLabel.TextStrokeTransparency = 0.8
+    distLabel.TextStrokeColor3 = Color3.new(0,0,0)
     distLabel.TextXAlignment = Enum.TextXAlignment.Center
     distLabel.Visible = false
-    distLabel.Parent = holder
-    
-    local barOutline = Instance.new("Frame")
-    barOutline.Name = "HealthOutline"
-    barOutline.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    barOutline.BackgroundTransparency = 0.5
-    barOutline.BorderSizePixel = 0
-    barOutline.Visible = false
-    barOutline.Parent = holder
-    
-    local bar = Instance.new("Frame")
-    bar.Name = "HealthBar"
-    bar.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-    bar.BorderSizePixel = 0
-    bar.Visible = false
-    bar.Parent = holder
-    
+    distLabel.Parent = folder
+
+    local healthBar = Instance.new("Frame")
+    healthBar.Name = "HealthBar"
+    healthBar.BackgroundColor3 = Color3.fromRGB(0,255,0)
+    healthBar.BorderSizePixel = 0
+    healthBar.Size = UDim2.new(0, 2, 0, 100)
+    healthBar.Visible = false
+    healthBar.Parent = folder
+
+    local healthBg = Instance.new("Frame")
+    healthBg.Name = "HealthBg"
+    healthBg.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    healthBg.BorderSizePixel = 0
+    healthBg.Size = UDim2.new(0, 2, 0, 100)
+    healthBg.Visible = false
+    healthBg.Parent = folder
+
     espElements[player] = {
-        Holder = holder,
-        Box3D = box3D, BoxCanvas = canvas, Box2D = box2D, Top = top, Bottom = bottom, Left = left, Right = right,
-        Tracer = tracer, Circle = circle, HeadDot = headDot, Skeleton = skeletonParts, SkeletonFolder = skeletonFolder,
-        Name = nameLabel, Distance = distLabel, HealthOutline = barOutline, HealthBar = bar
+        Folder = folder,
+        Box = box,
+        BoxStroke = boxStroke,
+        Tracer = tracer,
+        Name = nameLabel,
+        Distance = distLabel,
+        HealthBar = healthBar,
+        HealthBg = healthBg,
     }
 end
 
 local function hidePlayerESP(elements)
     if not elements then return end
-    if elements.Box3D then elements.Box3D.Visible = false end
-    if elements.Box2D then elements.Box2D.Visible = false end
-    if elements.Tracer then elements.Tracer.Visible = false end
-    if elements.Circle then elements.Circle.Visible = false end
-    if elements.HeadDot then elements.HeadDot.Visible = false end
-    if elements.SkeletonFolder then elements.SkeletonFolder.Visible = false end
-    if elements.Name then elements.Name.Visible = false end
-    if elements.Distance then elements.Distance.Visible = false end
-    if elements.HealthOutline then elements.HealthOutline.Visible = false end
-    if elements.HealthBar then elements.HealthBar.Visible = false end
+    elements.Box.Visible = false
+    elements.Tracer.Visible = false
+    elements.Name.Visible = false
+    elements.Distance.Visible = false
+    elements.HealthBar.Visible = false
+    elements.HealthBg.Visible = false
 end
 
-local function clearAllESP()
+function clearAllESP()
     for player, elements in pairs(espElements) do
-        if elements.Holder then
-            elements.Holder:Destroy()
-        end
+        if elements.Folder then elements.Folder:Destroy() end
         espElements[player] = nil
     end
-    if ESP_GUI then
-        ESP_GUI:Destroy()
-        ESP_GUI = nil
+    if ESP_GUI then ESP_GUI:Destroy(); ESP_GUI = nil end
+    
+    for corpse, highlight in pairs(corpseCache) do
+        if highlight then highlight:Destroy() end
     end
-    -- Limpa os Chams
-    for _, v in pairs(workspace:GetDescendants()) do
-        if v.Name == "Obsidian_Chams" then
-            v:Destroy()
+    corpseCache = {}
+    
+    for player, data in pairs(skeletonCache) do
+        for _, line in pairs(data) do
+            if type(line) == "table" and line.Remove then
+                line:Remove()
+            end
         end
+        skeletonCache[player] = nil
     end
 end
 
--- =============================================================================
--- MOTOR PREMIUM ESP (LOOP PRINCIPAL)
--- =============================================================================
-
-local function drawSkeleton(character, elements, espColor)
-    if not _G.ESP_Skeleton then return end
-    
-    local head = character:FindFirstChild("Head", true)
-    local torso = character:FindFirstChild("Torso", true) or character:FindFirstChild("UpperTorso", true)
-    local leftArm = character:FindFirstChild("Left Arm", true) or character:FindFirstChild("LeftUpperArm", true)
-    local rightArm = character:FindFirstChild("Right Arm", true) or character:FindFirstChild("RightUpperArm", true)
-    local leftLeg = character:FindFirstChild("Left Leg", true) or character:FindFirstChild("LeftUpperLeg", true)
-    local rightLeg = character:FindFirstChild("Right Leg", true) or character:FindFirstChild("RightUpperLeg", true)
-    local leftHand = character:FindFirstChild("LeftHand", true) or character:FindFirstChild("LeftLowerArm", true)
-    local rightHand = character:FindFirstChild("RightHand", true) or character:FindFirstChild("RightLowerArm", true)
-    local leftFoot = character:FindFirstChild("LeftFoot", true) or character:FindFirstChild("LeftLowerLeg", true)
-    local rightFoot = character:FindFirstChild("RightFoot", true) or character:FindFirstChild("RightLowerLeg", true)
-    
-    local joints = {head, torso, leftArm, rightArm, leftLeg, rightLeg, leftHand, rightHand, leftFoot, rightFoot}
-    local lines = elements.Skeleton
-    
-    for i, part in pairs(joints) do
-        if part then
-            local nextPart = joints[i+1]
-            if nextPart then
-                local pos1, on1 = Camera:WorldToViewportPoint(part.Position)
-                local pos2, on2 = Camera:WorldToViewportPoint(nextPart.Position)
-                
-                if on1 and on2 then
-                    local line = lines[i]
-                    if line then
-                        local dx = pos2.X - pos1.X
-                        local dy = pos2.Y - pos1.Y
-                        local length = math.sqrt(dx*dx + dy*dy)
-                        local angle = math.atan2(dy, dx)
-                        
-                        line.Size = UDim2.new(0, length, 0, 1.5)
-                        line.Position = UDim2.new(0, pos1.X, 0, pos1.Y)
-                        line.Rotation = math.deg(angle)
-                        line.Visible = true
-                        line.BackgroundColor3 = espColor
-                    end
-                end
-            end
-        end
+Players.PlayerRemoving:Connect(function(player)
+    local elements = espElements[player]
+    if elements then
+        elements.Folder:Destroy()
+        espElements[player] = nil
     end
-end
-
-RunService.RenderStepped:Connect(function()
-    if not _G.ESP_Enabled then return end
-    
-    Camera = workspace.CurrentCamera
-    if not Camera then return end
-    
-    local playersList = Players:GetPlayers()
-    local cameraPosition = Camera.CFrame.Position
-    local localChar = LocalPlayer.Character
-    
-    for i = 1, #playersList do
-        local player = playersList[i]
-        
-        if player ~= LocalPlayer then
-            local character = player.Character
-            if character then
-                local hrp = character:FindFirstChild("HumanoidRootPart", true)
-                local humanoid = character:FindFirstChild("Humanoid", true)
-                local head = character:FindFirstChild("Head", true)
-                
-                if hrp and humanoid and head and hrp:IsA("BasePart") then
-                    local currentHealth = humanoid.Health
-                    
-                    if currentHealth > 0 then
-                        local distance = (cameraPosition - hrp.Position).Magnitude
-                        
-                        if distance <= _G.ESP_MaxDistance then
-                            
-                            -- =============================================
-                            -- FOV CHECK (Se estiver fora do ângulo, esconde)
-                            -- =============================================
-                            if not isPlayerInFOV(hrp.Position) then
-                                if espElements[player] then hidePlayerESP(espElements[player]) end
-                                continue
-                            end
-                            
-                            local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
-                            
-                            if onScreen and pos.Z > 0 then
-                                if not espElements[player] then
-                                    createESPForPlayer(player)
-                                end
-                                
-                                local elements = espElements[player]
-                                local isAlly = isPlayerAlly(player)
-                                local espColor = isAlly and _G.ESP_SafeColor or _G.ESP_DangerColor
-                                
-                                -- Altura e largura reais
-                                local topPos = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 1, 0))
-                                local bottomPos = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
-                                local height = math.clamp(math.abs(topPos.Y - bottomPos.Y), 20, 500)
-                                local width = height * 0.45
-                                local posX = pos.X - width / 2
-                                local posY = topPos.Y - 5
-                                
-                                -- =============================================
-                                -- BOX (3D ou 2D)
-                                -- =============================================
-                                if _G.ESP_Box then
-                                    if _G.ESP_Box3D then
-                                        -- CAIXA 3D (ViewportFrame)
-                                        elements.Box3D.Position = UDim2.new(0, pos.X - width/2, 0, topPos.Y - 5)
-                                        elements.Box3D.Size = UDim2.new(0, width, 0, height)
-                                        elements.Box3D.Visible = true
-                                        
-                                        local lines3D = elements.BoxCanvas:GetChildren()
-                                        if #lines3D >= 4 then
-                                            lines3D[1].Size = UDim2.new(1, -4, 0, 1)
-                                            lines3D[1].Position = UDim2.new(0, 2, 0, 0)
-                                            lines3D[2].Size = UDim2.new(1, -4, 0, 1)
-                                            lines3D[2].Position = UDim2.new(0, 2, 1, 0)
-                                            lines3D[3].Size = UDim2.new(0, 1, 1, -4)
-                                            lines3D[3].Position = UDim2.new(0, 0, 0, 2)
-                                            lines3D[4].Size = UDim2.new(0, 1, 1, -4)
-                                            lines3D[4].Position = UDim2.new(1, 0, 0, 2)
-                                            
-                                            for _, line in pairs(lines3D) do
-                                                line.BackgroundColor3 = espColor
-                                            end
-                                        end
-                                        elements.Box2D.Visible = false
-                                    else
-                                        -- CAIXA 2D
-                                        elements.Box2D.Position = UDim2.new(0, posX, 0, posY)
-                                        elements.Box2D.Size = UDim2.new(0, width, 0, height)
-                                        elements.Box2D.Visible = true
-                                        
-                                        if _G.ESP_BoxStyle == "Cheia" then
-                                            elements.Top.Size = UDim2.new(1, 0, 0, 1)
-                                            elements.Top.Position = UDim2.new(0, 0, 0, 0)
-                                            elements.Bottom.Size = UDim2.new(1, 0, 0, 1)
-                                            elements.Bottom.Position = UDim2.new(0, 0, 1, 0)
-                                            elements.Left.Size = UDim2.new(0, 1, 1, 0)
-                                            elements.Left.Position = UDim2.new(0, 0, 0, 0)
-                                            elements.Right.Size = UDim2.new(0, 1, 1, 0)
-                                            elements.Right.Position = UDim2.new(1, 0, 0, 0)
-                                        else -- Esquadrinhada
-                                            local cornerSize = width * 0.25
-                                            elements.Top.Size = UDim2.new(0, cornerSize, 0, 1)
-                                            elements.Top.Position = UDim2.new(0, 0, 0, 0)
-                                            elements.Bottom.Size = UDim2.new(0, cornerSize, 0, 1)
-                                            elements.Bottom.Position = UDim2.new(0, width - cornerSize, 1, 0)
-                                            elements.Left.Size = UDim2.new(0, 1, 0, cornerSize)
-                                            elements.Left.Position = UDim2.new(0, 0, 0, 0)
-                                            elements.Right.Size = UDim2.new(0, 1, 0, cornerSize)
-                                            elements.Right.Position = UDim2.new(1, 0, height - cornerSize, 0)
-                                        end
-                                        
-                                        elements.Top.BackgroundColor3 = espColor
-                                        elements.Bottom.BackgroundColor3 = espColor
-                                        elements.Left.BackgroundColor3 = espColor
-                                        elements.Right.BackgroundColor3 = espColor
-                                        elements.Box3D.Visible = false
-                                    end
-                                else
-                                    elements.Box3D.Visible = false
-                                    elements.Box2D.Visible = false
-                                end
-                                
-                                -- =============================================
-                                -- TRACER
-                                -- =============================================
-                                if _G.ESP_Tracer and localChar and localChar:FindFirstChild("HumanoidRootPart", true) then
-                                    local myPos = Camera:WorldToViewportPoint(localChar.HumanoidRootPart.Position)
-                                    local x1, y1 = myPos.X, myPos.Y
-                                    local x2, y2 = pos.X, pos.Y
-                                    
-                                    local dx = x2 - x1
-                                    local dy = y2 - y1
-                                    local length = math.sqrt(dx*dx + dy*dy)
-                                    local angle = math.atan2(dy, dx)
-                                    
-                                    elements.Tracer.Size = UDim2.new(0, length, 0, 1.5)
-                                    elements.Tracer.Position = UDim2.new(0, x1, 0, y1)
-                                    elements.Tracer.Rotation = math.deg(angle)
-                                    elements.Tracer.Visible = true
-                                    elements.Tracer.BackgroundColor3 = espColor
-                                else
-                                    elements.Tracer.Visible = false
-                                end
-                                
-                                -- =============================================
-                                -- GROUND CIRCLE
-                                -- =============================================
-                                if _G.ESP_Circle then
-                                    local circleSize = _G.ESP_CircleSize * 15
-                                    local circlePos = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 2.5, 0))
-                                    elements.Circle.Position = UDim2.new(0, circlePos.X - circleSize/2, 0, circlePos.Y - circleSize/2)
-                                    elements.Circle.Size = UDim2.new(0, circleSize, 0, circleSize)
-                                    elements.Circle.Visible = true
-                                    elements.Circle.BackgroundColor3 = espColor
-                                    elements.Circle.BackgroundTransparency = 0.4
-                                else
-                                    elements.Circle.Visible = false
-                                end
-                                
-                                -- =============================================
-                                -- HEAD DOT
-                                -- =============================================
-                                if _G.ESP_HeadDot then
-                                    local dotPos = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 1, 0))
-                                    elements.HeadDot.Position = UDim2.new(0, dotPos.X - 3, 0, dotPos.Y - 3)
-                                    elements.HeadDot.Size = UDim2.new(0, 6, 0, 6)
-                                    elements.HeadDot.Visible = true
-                                    elements.HeadDot.BackgroundColor3 = espColor
-                                else
-                                    elements.HeadDot.Visible = false
-                                end
-                                
-                                -- =============================================
-                                -- SKELETON
-                                -- =============================================
-                                if _G.ESP_Skeleton then
-                                    drawSkeleton(character, elements, espColor)
-                                    elements.SkeletonFolder.Visible = true
-                                else
-                                    elements.SkeletonFolder.Visible = false
-                                end
-                                
-                                -- =============================================
-                                -- NOME
-                                -- =============================================
-                                if _G.ESP_Name then
-                                    elements.Name.Text = player.Name
-                                    elements.Name.Position = UDim2.new(0, pos.X - 100, 0, posY - 22)
-                                    elements.Name.Size = UDim2.new(0, 200, 0, 14)
-                                    elements.Name.Visible = true
-                                else
-                                    elements.Name.Visible = false
-                                end
-                                
-                                -- =============================================
-                                -- DISTÂNCIA
-                                -- =============================================
-                                if _G.ESP_Distance then
-                                    elements.Distance.Text = math.floor(distance) .. "m"
-                                    elements.Distance.Position = UDim2.new(0, pos.X - 100, 0, posY + height + 4)
-                                    elements.Distance.Size = UDim2.new(0, 200, 0, 12)
-                                    elements.Distance.Visible = true
-                                else
-                                    elements.Distance.Visible = false
-                                end
-                                
-                                -- =============================================
-                                -- VIDA
-                                -- =============================================
-                                if _G.ESP_Health then
-                                    local healthRatio = math.clamp(currentHealth / humanoid.MaxHealth, 0, 1)
-                                    local barHeight = height * healthRatio
-                                    local barWidth = 3
-                                    local padding = 4
-                                    
-                                    elements.HealthOutline.Position = UDim2.new(0, posX - barWidth - padding, 0, posY)
-                                    elements.HealthOutline.Size = UDim2.new(0, barWidth, 0, height)
-                                    elements.HealthOutline.Visible = true
-                                    
-                                    elements.HealthBar.Position = UDim2.new(0, posX - barWidth - padding, 0, posY + height - barHeight)
-                                    elements.HealthBar.Size = UDim2.new(0, barWidth, 0, barHeight)
-                                    elements.HealthBar.BackgroundColor3 = Color3.fromHSV(healthRatio * 0.33, 1, 1)
-                                    elements.HealthBar.Visible = true
-                                else
-                                    elements.HealthOutline.Visible = false
-                                    elements.HealthBar.Visible = false
-                                end
-                                
-                            else
-                                if espElements[player] then hidePlayerESP(espElements[player]) end
-                            end
-                        else
-                            if espElements[player] then hidePlayerESP(espElements[player]) end
-                        end
-                    else
-                        if espElements[player] then hidePlayerESP(espElements[player]) end
-                    end
-                else
-                    if espElements[player] then hidePlayerESP(espElements[player]) end
-                end
-            else
-                if espElements[player] then hidePlayerESP(espElements[player]) end
+    local skelData = skeletonCache[player]
+    if skelData then
+        for _, line in pairs(skelData) do
+            if type(line) == "table" and line.Remove then
+                line:Remove()
             end
         end
+        skeletonCache[player] = nil
     end
 end)
 
--- =============================================================================
--- SISTEMA DE CHAMS (WALLHACK)
--- =============================================================================
+-- ============================================
+-- SISTEMA DE SKELETON ESP (INTELIGENTE)
+-- ============================================
+local function createSkeletonForPlayer(player)
+    local data = {
+        HeadTorso = Drawing.new("Line"),
+        TorsoLegs = Drawing.new("Line"),
+        ArmL = Drawing.new("Line"),
+        ArmR = Drawing.new("Line"),
+        LegL = Drawing.new("Line"),
+        LegR = Drawing.new("Line")
+    }
+    for _, line in pairs(data) do
+        line.Thickness = 2
+        line.Transparency = 0.3
+        line.Visible = false
+    end
+    skeletonCache[player] = data
+    return data
+end
 
-local chamsRunning = false
+local function updateSkeleton(player, camera, espColor)
+    local data = skeletonCache[player]
+    if not data then
+        data = createSkeletonForPlayer(player)
+    end
 
-local function updateChams()
-    if not _G.ESP_Chams then
-        if chamsRunning then
-            for _, v in pairs(workspace:GetDescendants()) do
-                if v.Name == "Obsidian_Chams" then
-                    v:Destroy()
+    local char = player.Character
+    if not char then
+        for _, line in pairs(data) do line.Visible = false end
+        return
+    end
+
+    local head = char:FindFirstChild("Head", true)
+    local upperTorso = char:FindFirstChild("UpperTorso", true) or char:FindFirstChild("Torso", true)
+    local lowerTorso = char:FindFirstChild("LowerTorso", true)
+    local leftArm = char:FindFirstChild("LeftArm", true) or char:FindFirstChild("Left Arm", true)
+    local rightArm = char:FindFirstChild("RightArm", true) or char:FindFirstChild("Right Arm", true)
+    local leftLeg = char:FindFirstChild("LeftLeg", true) or char:FindFirstChild("Left Leg", true)
+    local rightLeg = char:FindFirstChild("RightLeg", true) or char:FindFirstChild("Right Leg", true)
+
+    local function getScreenPos(part)
+        if part and part:IsA("BasePart") then
+            local pos, onScreen = camera:WorldToViewportPoint(part.Position)
+            if onScreen and pos.Z > 0 then
+                return Vector2.new(pos.X, pos.Y)
+            end
+        end
+        return nil
+    end
+
+    local headPos = getScreenPos(head)
+    local upperPos = getScreenPos(upperTorso)
+    local lowerPos = getScreenPos(lowerTorso)
+    local armLPos = getScreenPos(leftArm)
+    local armRPos = getScreenPos(rightArm)
+    local legLPos = getScreenPos(leftLeg)
+    local legRPos = getScreenPos(rightLeg)
+
+    local function updateLine(line, pos1, pos2)
+        if line and pos1 and pos2 then
+            line.From = pos1
+            line.To = pos2
+            line.Color = espColor
+            line.Visible = true
+        elseif line then
+            line.Visible = false
+        end
+    end
+
+    updateLine(data.HeadTorso, headPos, upperPos)
+    if lowerTorso and lowerPos then
+        updateLine(data.TorsoLegs, upperPos, lowerPos)
+        updateLine(data.LegL, lowerPos, legLPos)
+        updateLine(data.LegR, lowerPos, legRPos)
+    else
+        updateLine(data.TorsoLegs, upperPos, legLPos)
+        updateLine(data.LegL, upperPos, legLPos)
+        updateLine(data.LegR, upperPos, legRPos)
+    end
+    updateLine(data.ArmL, upperPos, armLPos)
+    updateLine(data.ArmR, upperPos, armRPos)
+end
+
+-- ============================================
+-- LOOP DE ATUALIZAÇÃO DO ESP
+-- ============================================
+local function updateESP()
+    if not _G.Settings_ESP.Enabled then return end
+    frameCounter = frameCounter + 1
+    if frameCounter % 2 ~= 0 then return end
+
+    local camera = workspace.CurrentCamera
+    if not camera then return end
+    local localChar = LocalPlayer.Character
+    if not localChar then return end
+
+    local cameraPos = camera.CFrame.Position
+    local maxDist = _G.Settings_ESP.MaxDistance
+    local maxDistBuffer = maxDist + 50 
+    local scaleFactor = _G.Settings_ESP.Scale / 100
+    local playersList = Players:GetPlayers()
+
+    for _, player in pairs(playersList) do
+        if player == LocalPlayer then continue end
+
+        local character = player.Character
+        if not character then
+            if espElements[player] then hidePlayerESP(espElements[player]) end
+            continue
+        end
+
+        local hrp = character:FindFirstChild("HumanoidRootPart")
+        local head = character:FindFirstChild("Head")
+        local humanoid = character:FindFirstChild("Humanoid")
+        if not (hrp and head and humanoid) or humanoid.Health <= 0 then
+            if espElements[player] then hidePlayerESP(espElements[player]) end
+            continue
+        end
+
+        local distance = (cameraPos - hrp.Position).Magnitude
+        if distance > maxDistBuffer then
+            if espElements[player] then hidePlayerESP(espElements[player]) end
+            continue
+        end
+
+        local pos, onScreen = camera:WorldToViewportPoint(hrp.Position)
+        if not onScreen or pos.Z <= 0 then
+            if espElements[player] then hidePlayerESP(espElements[player]) end
+            continue
+        end
+
+        if not espElements[player] then createESPForPlayer(player) end
+        local el = espElements[player]
+        if not el then continue end
+
+        local espColor
+        if isPlayerAlly(player) then
+            espColor = _G.Settings_ESP.SafeColor
+        else
+            local visible = isPlayerVisible(hrp.Position, {localChar, character})
+            espColor = visible and _G.Settings_ESP.VisibleColor or _G.Settings_ESP.DangerColor
+        end
+
+        local topPos, topOn = camera:WorldToViewportPoint(head.Position + Vector3.new(0, 1.5, 0))
+        local bottomPos, botOn = camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
+        if not topOn or not botOn then
+            hidePlayerESP(el)
+            continue
+        end
+
+        local rawHeight = math.abs(topPos.Y - bottomPos.Y)
+        local scaledHeight = rawHeight * scaleFactor
+        scaledHeight = math.clamp(scaledHeight, 5, 500) 
+        local width = scaledHeight * 0.45
+        local posX = pos.X - width/2
+        local posY = topPos.Y - 2
+
+        if _G.Settings_ESP.Box then
+            el.Box.Position = UDim2.new(0, posX, 0, posY)
+            el.Box.Size = UDim2.new(0, width, 0, scaledHeight)
+            el.BoxStroke.Color = espColor
+            el.Box.Visible = true
+        else
+            el.Box.Visible = false
+        end
+
+        if _G.Settings_ESP.Tracer then
+            local centerX = camera.ViewportSize.X/2
+            local centerY = camera.ViewportSize.Y/2
+            local dx = pos.X - centerX
+            local dy = pos.Y - centerY
+            local length = math.sqrt(dx*dx + dy*dy)
+            local angle = math.atan2(dy, dx)
+
+            el.Tracer.Position = UDim2.new(0, centerX, 0, centerY)
+            el.Tracer.Size = UDim2.new(0, length, 0, 1 * scaleFactor)
+            el.Tracer.Rotation = math.deg(angle)
+            el.Tracer.BackgroundColor3 = espColor
+            el.Tracer.BackgroundTransparency = 0.4
+            el.Tracer.Visible = true
+        else
+            el.Tracer.Visible = false
+        end
+
+        if _G.Settings_ESP.Name then
+            el.Name.Text = player.Name
+            local fontSize = math.clamp(scaledHeight * 0.13, 10, 18)
+            el.Name.TextSize = fontSize
+            el.Name.Position = UDim2.new(0, pos.X - 100, 0, topPos.Y - fontSize - 4)
+            el.Name.Size = UDim2.new(0, 200, 0, fontSize + 4)
+            el.Name.TextColor3 = espColor
+            el.Name.Visible = true
+        else
+            el.Name.Visible = false
+        end
+
+        if _G.Settings_ESP.Distance then
+            el.Distance.Text = math.floor(distance) .. "m"
+            local fontSize = math.clamp(scaledHeight * 0.10, 10, 14)
+            el.Distance.TextSize = fontSize
+            el.Distance.Position = UDim2.new(0, pos.X - 100, 0, bottomPos.Y + 4)
+            el.Distance.Size = UDim2.new(0, 200, 0, fontSize + 4)
+            el.Distance.TextColor3 = Color3.fromRGB(180,180,180)
+            el.Distance.Visible = true
+        else
+            el.Distance.Visible = false
+        end
+
+        if _G.Settings_ESP.Health then
+            local healthPercent = humanoid.Health / humanoid.MaxHealth
+            local barWidth = 2 * scaleFactor
+            local padding = 4 * scaleFactor
+            local barX = posX + width + padding
+
+            el.HealthBg.Position = UDim2.new(0, barX, 0, posY)
+            el.HealthBg.Size = UDim2.new(0, barWidth, 0, scaledHeight)
+            el.HealthBg.Visible = true
+
+            local filledHeight = scaledHeight * healthPercent
+            el.HealthBar.Position = UDim2.new(0, barX, 0, posY + scaledHeight - filledHeight)
+            el.HealthBar.Size = UDim2.new(0, barWidth, 0, filledHeight)
+            el.HealthBar.BackgroundColor3 = Color3.fromHSV(healthPercent * 0.33, 1, 1)
+            el.HealthBar.Visible = true
+        else
+            el.HealthBar.Visible = false
+            el.HealthBg.Visible = false
+        end
+
+        if _G.Settings_ESP.Skeleton then
+            updateSkeleton(player, camera, espColor)
+        else
+            local skelData = skeletonCache[player]
+            if skelData then
+                for _, line in pairs(skelData) do
+                    if type(line) == "table" then
+                        line.Visible = false
+                    end
                 end
             end
-            chamsRunning = false
+        end
+    end
+end
+
+espConnection = RunService.RenderStepped:Connect(updateESP)
+
+-- ============================================
+-- SISTEMA DE CHAMS PARA CORPOS
+-- ============================================
+local function updateCorpseESP()
+    if not _G.Settings_ESP.Enabled or not _G.Settings_ESP.Corpses then return end
+    
+    corpseFrameCounter = corpseFrameCounter + 1
+    if corpseFrameCounter % 30 ~= 0 then return end
+    
+    local corpsesFolder = workspace:FindFirstChild("Corpses")
+    if not corpsesFolder then
+        for corpse, highlight in pairs(corpseCache) do
+            highlight:Destroy()
+            corpseCache[corpse] = nil
         end
         return
     end
     
-    chamsRunning = true
-    local chamsColor = _G.ESP_ChamsColor
+    local currentCorpses = {}
+    for _, child in ipairs(corpsesFolder:GetChildren()) do
+        if child:IsA("Model") or child:IsA("Folder") then
+            local hasBodyPart = false
+            for _, part in ipairs(child:GetDescendants()) do
+                if part:IsA("BasePart") and (part.Name == "Head" or part.Name == "Head2" or part.Name == "HumanoidRootPart" or part.Name == "Body") then
+                    hasBodyPart = true
+                    break
+                end
+            end
+            if hasBodyPart then
+                table.insert(currentCorpses, child)
+            end
+        end
+    end
     
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
-            local character = player.Character
-            for _, part in pairs(character:GetChildren()) do
-                if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-                    if not part:FindFirstChild("Obsidian_Chams") then
-                        local chams = Instance.new("BoxHandleAdornment")
-                        chams.Name = "Obsidian_Chams"
-                        chams.Size = part.Size + Vector3.new(0.2, 0.2, 0.2)
-                        chams.Adornee = part
-                        chams.ZIndex = 10
-                        chams.AlwaysOnTop = true
-                        chams.Transparency = 0.5
-                        chams.Color3 = chamsColor
-                        chams.Parent = part
-                    else
-                        local chams = part:FindFirstChild("Obsidian_Chams")
-                        if chams then
-                            chams.Color3 = chamsColor
-                            chams.Transparency = 0.5
+    for corpse, highlight in pairs(corpseCache) do
+        if not corpse.Parent or not table.find(currentCorpses, corpse) then
+            highlight:Destroy()
+            corpseCache[corpse] = nil
+        end
+    end
+    
+    for _, corpse in ipairs(currentCorpses) do
+        if not corpseCache[corpse] then
+            local highlight = Instance.new("Highlight")
+            highlight.FillColor = Color3.fromRGB(170, 0, 255)
+            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+            highlight.FillTransparency = 0.8
+            highlight.OutlineTransparency = 0
+            highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+            highlight.Parent = corpse
+            corpseCache[corpse] = highlight
+        end
+    end
+end
+
+function manageCorpseConnection()
+    if _G.Settings_ESP.Corpses and _G.Settings_ESP.Enabled then
+        if not corpseConnection then
+            corpseConnection = RunService.Heartbeat:Connect(updateCorpseESP)
+        end
+    else
+        if corpseConnection then
+            corpseConnection:Disconnect()
+            corpseConnection = nil
+            for corpse, highlight in pairs(corpseCache) do
+                if highlight then highlight:Destroy() end
+            end
+            corpseCache = {}
+        end
+    end
+end
+
+-- ============================================
+-- BACKEND DO AIMBOT
+-- ============================================
+local function getAimbotTarget()
+    if not _G.Aimbot.Enabled then return nil end
+    local players = Players:GetPlayers()
+    local closestTarget = nil
+    local closestDistance = _G.Aimbot.FOV
+    local cameraPos = Camera.CFrame.Position
+    local centerX = Camera.ViewportSize.X / 2
+    local centerY = Camera.ViewportSize.Y / 2
+
+    for _, player in pairs(players) do
+        if player ~= LocalPlayer then
+            local char = player.Character
+            if char then
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                local humanoid = char:FindFirstChild("Humanoid")
+                if hrp and humanoid and humanoid.Health > 0 then
+                    local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+                    if onScreen and screenPos.Z > 0 then
+                        local dx = screenPos.X - centerX
+                        local dy = screenPos.Y - centerY
+                        local distFromCenter = math.sqrt(dx*dx + dy*dy)
+                        if distFromCenter < closestDistance then
+                            if isPlayerVisible(hrp.Position, {LocalPlayer.Character, char}) then
+                                closestDistance = distFromCenter
+                                closestTarget = player
+                            end
                         end
                     end
                 end
             end
         end
     end
+    return closestTarget
 end
 
-task.spawn(function()
-    while true do
-        task.wait(0.5)
-        pcall(updateChams)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
+    if _G.Aimbot.Enabled then
+        local target = getAimbotTarget()
+        if target and target.Character then
+            local targetPart = target.Character:FindFirstChild("Head")
+            if _G.Aimbot.Mode == "Torso (Body)" then
+                targetPart = target.Character:FindFirstChild("HumanoidRootPart") or target.Character:FindFirstChild("Torso")
+            end
+            if targetPart then
+                local originalCFrame = Camera.CFrame
+                Camera.CFrame = CFrame.new(originalCFrame.Position, targetPart.Position)
+                RunService.RenderStepped:Wait()
+                Camera.CFrame = originalCFrame
+                Library:Notification("Aimbot", 1, nil)
+            end
+        end
     end
 end)
 
--- =============================================================================
--- UI SETTINGS E MANAGERS
--- =============================================================================
+-- ============================================
+-- CRIAÇÃO DA PÁGINA DE CONFIGURAÇÕES
+-- ============================================
+local SettingsPage = Library:CreateSettingsPage(Window)
+local SettingsSub = SettingsPage:SubPage({Name = "Settings"})
+local SettingsSection = SettingsSub:Section({Name = "UI Settings", Icon = "136879043989014", Side = 1})
 
-local MenuGroup = Tabs["UI Settings"]:AddLeftGroupbox("Menu", "wrench")
-MenuGroup:AddToggle("KeybindMenuOpen", {
-    Default = Library.KeybindFrame.Visible,
-    Text = "Open Keybind Menu",
-    Callback = function(value) Library.KeybindFrame.Visible = value end,
-})
-MenuGroup:AddToggle("ShowCustomCursor", {
-    Text = "Custom Cursor",
-    Default = Library.ShowCustomCursor,
-    Callback = function(Value) Library.ShowCustomCursor = Value end,
-})
-MenuGroup:AddDropdown("NotificationSide", {
-    Values = { "Left", "Right" },
-    Default = "Right",
-    Text = "Notification Side",
-    Callback = function(Value) Library:SetNotifySide(Value) end,
-})
-MenuGroup:AddDropdown("DPIDropdown", {
-    Values = { "50%", "75%", "100%", "125%", "150%", "175%", "200%" },
-    Default = "100%",
-    Text = "DPI Scale",
-    Callback = function(Value)
-        Value = Value:gsub("%%", "")
-        local DPI = tonumber(Value)
-        Library:SetDPIScale(DPI)
-    end,
-})
-MenuGroup:AddDivider()
-MenuGroup:AddLabel("Menu bind"):AddKeyPicker("MenuKeybind", {
-    Default = "RightShift", NoUI = true, Text = "Menu keybind"
-})
-MenuGroup:AddButton("Unload Safely", function()
+SettingsSection:Button({ Name = "Unload Safely", Callback = function()
     clearAllESP()
-    _G.ESP_Enabled = false
+    if corpseConnection then
+        corpseConnection:Disconnect()
+        corpseConnection = nil
+    end
+    _G.Settings_ESP.Enabled = false
+    _G.Aimbot.Enabled = false
+    CircleGui:Destroy()
     Library:Unload()
-end)
+end })
 
-Library.ToggleKeybind = Options.MenuKeybind
-ThemeManager:SetLibrary(Library)
-SaveManager:SetLibrary(Library)
-SaveManager:IgnoreThemeSettings()
-SaveManager:SetIgnoreIndexes({ "MenuKeybind" })
-ThemeManager:SetFolder("Obsidian")
-SaveManager:SetFolder("Obsidian/Configs")
-SaveManager:BuildConfigSection(Tabs["UI Settings"])
-ThemeManager:ApplyToTab(Tabs["UI Settings"])
-SaveManager:LoadAutoloadConfig()
-
-Library:Notify({
-    Title = "Obsidian Ultra Premium - Full",
-    Description = "✅ 2D/3D Box + Skeleton + Chams + FOV\n✅ Visual TWD Online",
-    Time = 6,
-})
+-- ============================================
+-- NOTIFICAÇÃO INICIAL
+-- ============================================
+task.wait(0.5)
+UpdateFOVCircle()
+Library:Notification("Obsidian ESP", 6, nil)
