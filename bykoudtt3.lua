@@ -217,9 +217,9 @@ local Aim_Sub = Aimbot_Page:SubPage({Name = "Aimbot"})
 local Aim_Sec = Aim_Sub:Section({Name = "Configurações", Icon = "136879043989014", Side = 1})
 
 Aim_Sec:Toggle({Name = "Ativar Aimbot (Snap)", Flag = "Aimbot_Enabled", Default = false})
-Aim_Sec:Slider({Name = "Campo de Visão (FOV)", Flag = "Aimbot_FOV", Min = 20, Max = 180, Default = 120, Decimals = 1, Suffix = "°"})
+Aim_Sec:Slider({Name = "Campo de Visão (FOV)", Flag = "Aimbot_FOV", Min = 20, Max = 180, Default = 120, Decimals = 1, Suffix = "°", Callback = function(v)
     UpdateFOVCircle()
-
+end})
 Aim_Sec:Dropdown({Name = "Alvo Preferido", Flag = "Aimbot_Mode", Items = {"Cabeça (Head)", "Torso (Body)"}, Default = "Cabeça (Head)", Multi = false})
 Aim_Sec:Toggle({Name = "Mostrar Círculo de FOV", Flag = "Aimbot_Circle", Default = true, Callback = function(v)
     UpdateFOVCircle()
@@ -346,6 +346,7 @@ local function hidePlayerESP(elements)
 end
 
 -- Skeleton ESP
+-- Criação do Esqueleto
 local function createSkeletonForPlayer(player)
     local data = {
         HeadTorso = Drawing.new("Line"),
@@ -356,23 +357,33 @@ local function createSkeletonForPlayer(player)
         LegR = Drawing.new("Line")
     }
     for _, line in pairs(data) do
-        line.Thickness = 2
-        line.Transparency = 0.3
+        line.Thickness = 3     -- Aumentei a espessura
+        line.Transparency = 0  -- Mudei de 0.3 para 0 (Fica 100% visível)
         line.Visible = false
     end
     skeletonCache[player] = data
     return data
 end
 
-local function updateSkeleton(player, camera, espColor)
-    local data = skeletonCache[player]
-    if not data then data = createSkeletonForPlayer(player) end
-
-    local char = player.Character
-    if not char then
-        for _, line in pairs(data) do line.Visible = false end
-        return
+-- Função de desenho do Skeleton (substitua a sua function updateLine)
+local function updateLine(line, pos1, pos2, espColor)
+    if line and pos1 and pos2 then
+        line.From = pos1
+        line.To = pos2
+        -- Fallback: Se a cor for preta ou nil, usa branco para garantir visibilidade
+        line.Color = (espColor and espColor ~= Color3.new(0,0,0)) and espColor or Color3.new(1, 1, 1) 
+        line.Visible = true
+    elseif line then
+        line.Visible = false
     end
+end
+
+-- Lembre-se de atualizar a chamada dentro do updateSkeleton:
+-- Substitua:
+-- updateLine(data.HeadTorso, headPos, upperPos)
+-- Por:
+-- updateLine(data.HeadTorso, headPos, upperPos, espColor)
+-- E faça o mesmo para todas as outras chamadas (TorsoLegs, ArmL, etc)
 
     local head = char:FindFirstChild("Head", true)
     local upperTorso = char:FindFirstChild("UpperTorso", true) or char:FindFirstChild("Torso", true)
@@ -398,7 +409,7 @@ local function updateSkeleton(player, camera, espColor)
     local legLPos = getScreenPos(leftLeg)
     local legRPos = getScreenPos(rightLeg)
 
-    local function updateLine(line, pos1, pos2)
+    local function updateLine(line, pos1, pos2, espColor)
         if line and pos1 and pos2 then
             line.From = pos1
             line.To = pos2
@@ -409,18 +420,18 @@ local function updateSkeleton(player, camera, espColor)
         end
     end
 
-    updateLine(data.HeadTorso, headPos, upperPos)
+    updateLine(data.HeadTorso, headPos, upperPos, espColor)
     if lowerTorso and lowerPos then
-        updateLine(data.TorsoLegs, upperPos, lowerPos)
-        updateLine(data.LegL, lowerPos, legLPos)
-        updateLine(data.LegR, lowerPos, legRPos)
+        updateLine(data.TorsoLegs, upperPos, lowerPos, espColor)
+        updateLine(data.LegL, lowerPos, legLPos, espColor)
+        updateLine(data.LegR, lowerPos, legRPos, espColor)
     else
-        updateLine(data.TorsoLegs, upperPos, legLPos)
-        updateLine(data.LegL, upperPos, legLPos)
-        updateLine(data.LegR, upperPos, legRPos)
+        updateLine(data.TorsoLegs, upperPos, legLPos, espColor)
+        updateLine(data.LegL, upperPos, legLPos, espColor)
+        updateLine(data.LegR, upperPos, legRPos, espColor)
     end
-    updateLine(data.ArmL, upperPos, armLPos)
-    updateLine(data.ArmR, upperPos, armRPos)
+    updateLine(data.ArmL, upperPos, armLPos, espColor)
+    updateLine(data.ArmR, upperPos, armRPos, espColor)
 end
 
 -- ============================================
@@ -517,24 +528,29 @@ local function updateESP()
             el.Box.Visible = false
         end
 
-        -- Tracer
-        if tracer then
-            local centerX = camera.ViewportSize.X/2
-            local centerY = camera.ViewportSize.Y/2
-            local dx = pos.X - centerX
-            local dy = pos.Y - centerY
-            local length = math.sqrt(dx*dx + dy*dy)
-            local angle = math.atan2(dy, dx)
+-- Tracer
+if tracer then
+    -- Verificação extra: Só desenha se o jogador ainda estiver na tela!
+    if onScreen and pos.Z > 0 then
+        local centerX = camera.ViewportSize.X/2
+        local centerY = camera.ViewportSize.Y/2
+        local dx = pos.X - centerX
+        local dy = pos.Y - centerY
+        local length = math.sqrt(dx*dx + dy*dy)
+        local angle = math.atan2(dy, dx)
 
-            el.Tracer.Position = UDim2.new(0, centerX, 0, centerY)
-            el.Tracer.Size = UDim2.new(0, length, 0, 1 * scaleFactor)
-            el.Tracer.Rotation = math.deg(angle)
-            el.Tracer.BackgroundColor3 = espColor
-            el.Tracer.BackgroundTransparency = 0.4
-            el.Tracer.Visible = true
-        else
-            el.Tracer.Visible = false
-        end
+        el.Tracer.Position = UDim2.new(0, centerX, 0, centerY)
+        el.Tracer.Size = UDim2.new(0, length, 0, 1 * scaleFactor)
+        el.Tracer.Rotation = math.deg(angle)
+        el.Tracer.BackgroundColor3 = espColor
+        el.Tracer.BackgroundTransparency = 0.4
+        el.Tracer.Visible = true
+    else
+        el.Tracer.Visible = false
+    end
+else
+    el.Tracer.Visible = false
+end
 
         -- Nome
         if name then
