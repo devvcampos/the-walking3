@@ -1,428 +1,187 @@
 -- =============================================================================
--- OBSIDIAN ESP - BIBLIOTECA BALRIGHT (EMBUTIDA)
+-- TRAVA DE SEGURANÇA (EVITA ABRIR 2 VEZES)
 -- =============================================================================
-
--- ==========================================================
--- CÓDIGO DA BIBLIOTECA BALRIGHT (SAMET) - EMBUTIDO
--- ==========================================================
-do
-    local Library = {}
-    local Workspace = game:GetService("Workspace")
-    local UserInputService = game:GetService("UserInputService")
-    local Players = game:GetService("Players")
-    local HttpService = game:GetService("HttpService")
-    local RunService = game:GetService("RunService")
-    local CoreGui = cloneref and cloneref(game:GetService("CoreGui")) or game:GetService("CoreGui")
-    local TweenService = game:GetService("TweenService")
-
-    gethui = gethui or function() return CoreGui end
-
-    local LocalPlayer = Players.LocalPlayer
-    local Mouse = LocalPlayer:GetMouse()
-
-    local FromRGB = Color3.fromRGB
-    local FromHSV = Color3.fromHSV
-    local FromHex = Color3.fromHex
-
-    local UDim2New = UDim2.new
-    local UDimNew = UDim.new
-    local MathClamp = math.clamp
-    local MathFloor = math.floor
-    local TableInsert = table.insert
-    local TableFind = table.find
-    local TableRemove = table.remove
-    local TableConcat = table.concat
-    local InstanceNew = Instance.new
-    local StringFormat = string.format
-
-    -- Cores padrão
-    local Themes = {
-        ["Preset"] = {
-            Background = FromRGB(16, 18, 18),
-            Inline = FromRGB(21, 24, 24),
-            Element = FromRGB(30, 34, 34),
-            Accent = FromRGB(255, 255, 255),
-            Border = FromRGB(30, 34, 34),
-            Border2 = FromRGB(56, 62, 62)
-        }
-    }
-    Library.Theme = Themes["Preset"]
-
-    -- Funções auxiliares
-    function Library:Unload()
-        -- Limpeza (simplificada para não quebrar)
-    end
-
-    function Library:Window(data)
-        local win = {}
-        local main = InstanceNew("Frame")
-        main.Name = "MainFrame"
-        main.Size = UDim2New(0, 798, 0, 599)
-        main.Position = UDim2New(0.5, 0, 0.5, 0)
-        main.AnchorPoint = Vector2New(0.5, 0.5)
-        main.BackgroundColor3 = Library.Theme.Background
-        main.BorderSizePixel = 0
-        main.Parent = gethui()
-
-        local corner = InstanceNew("UICorner")
-        corner.CornerRadius = UDimNew(0, 7)
-        corner.Parent = main
-
-        -- Tabela de páginas
-        win.Pages = {}
-        win.Main = main
-        win.Name = data.Name or "Window"
-
-        function win:Category(name)
-            -- Ignorado no modo simples
-        end
-
-        function win:Page(data)
-            local page = {}
-            local pageFrame = InstanceNew("Frame")
-            pageFrame.Name = data.Name
-            pageFrame.Size = UDim2New(1, 0, 1, 0)
-            pageFrame.BackgroundTransparency = 1
-            pageFrame.Parent = main
-            pageFrame.Visible = false
-            page.Page = pageFrame
-            page.Name = data.Name
-
-            function page:SubPage(data)
-                local sub = {}
-                local subFrame = InstanceNew("Frame")
-                subFrame.Size = UDim2New(1, 0, 1, 0)
-                subFrame.BackgroundTransparency = 1
-                subFrame.Parent = pageFrame
-                subFrame.Visible = false
-                sub.Page = subFrame
-                sub.Name = data.Name
-
-                function sub:Section(data)
-                    local section = {}
-                    local sectionFrame = InstanceNew("Frame")
-                    sectionFrame.Size = UDim2New(1, 0, 0, 0)
-                    sectionFrame.AutomaticSize = Enum.AutomaticSize.Y
-                    sectionFrame.BackgroundColor3 = Library.Theme.Inline
-                    sectionFrame.BorderSizePixel = 0
-                    sectionFrame.Parent = subFrame
-                    local corner2 = InstanceNew("UICorner")
-                    corner2.CornerRadius = UDimNew(0, 7)
-                    corner2.Parent = sectionFrame
-
-                    section.Container = sectionFrame
-                    section.Name = data.Name
-
-                    function section:Toggle(data)
-                        local toggle = {}
-                        local btn = InstanceNew("TextButton")
-                        btn.Size = UDim2New(1, 0, 0, 20)
-                        btn.BackgroundTransparency = 1
-                        btn.Text = ""
-                        btn.Parent = sectionFrame
-
-                        local label = InstanceNew("TextLabel")
-                        label.Text = data.Name
-                        label.Size = UDim2New(0, 0, 1, 0)
-                        label.AutomaticSize = Enum.AutomaticSize.X
-                        label.BackgroundTransparency = 1
-                        label.TextColor3 = FromRGB(255, 255, 255)
-                        label.Parent = btn
-
-                        local indicator = InstanceNew("Frame")
-                        indicator.Size = UDim2New(0, 14, 0, 14)
-                        indicator.Position = UDim2New(1, -20, 0.5, -7)
-                        indicator.AnchorPoint = Vector2New(1, 0)
-                        indicator.BackgroundColor3 = Library.Theme.Element
-                        indicator.Parent = btn
-                        local corner3 = InstanceNew("UICorner")
-                        corner3.CornerRadius = UDimNew(0, 4)
-                        corner3.Parent = indicator
-
-                        local check = InstanceNew("Frame")
-                        check.Size = UDim2New(1, 0, 1, 0)
-                        check.BackgroundColor3 = FromRGB(255,255,255)
-                        check.BackgroundTransparency = 1
-                        check.Parent = indicator
-                        local corner4 = InstanceNew("UICorner")
-                        corner4.CornerRadius = UDimNew(0, 4)
-                        corner4.Parent = check
-
-                        local value = false
-                        function toggle:Set(val)
-                            value = val
-                            if val then
-                                check.BackgroundTransparency = 0
-                            else
-                                check.BackgroundTransparency = 1
-                            end
-                            if data.Callback then data.Callback(val) end
-                        end
-                        function toggle:Get() return value end
-
-                        btn.MouseButton1Click:Connect(function()
-                            toggle:Set(not value)
-                        end)
-
-                        toggle:Set(data.Default or false)
-                        return toggle
-                    end
-
-                    function section:Slider(data)
-                        local slider = {}
-                        local frame = InstanceNew("Frame")
-                        frame.Size = UDim2New(1, 0, 0, 30)
-                        frame.BackgroundTransparency = 1
-                        frame.Parent = sectionFrame
-
-                        local label = InstanceNew("TextLabel")
-                        label.Text = data.Name
-                        label.Size = UDim2New(0, 0, 0, 15)
-                        label.AutomaticSize = Enum.AutomaticSize.X
-                        label.BackgroundTransparency = 1
-                        label.TextColor3 = FromRGB(255,255,255)
-                        label.Parent = frame
-
-                        local valueLabel = InstanceNew("TextLabel")
-                        valueLabel.Position = UDim2New(1, 0, 0, 0)
-                        valueLabel.AnchorPoint = Vector2New(1, 0)
-                        valueLabel.Size = UDim2New(0, 0, 0, 15)
-                        valueLabel.AutomaticSize = Enum.AutomaticSize.X
-                        valueLabel.BackgroundTransparency = 1
-                        valueLabel.TextColor3 = FromRGB(150,150,150)
-                        valueLabel.Parent = frame
-
-                        local bar = InstanceNew("TextButton")
-                        bar.Position = UDim2New(0, 0, 1, -5)
-                        bar.AnchorPoint = Vector2New(0, 1)
-                        bar.Size = UDim2New(1, 0, 0, 4)
-                        bar.BackgroundColor3 = Library.Theme.Element
-                        bar.Text = ""
-                        bar.Parent = frame
-                        local corner5 = InstanceNew("UICorner")
-                        corner5.CornerRadius = UDimNew(1, 0)
-                        corner5.Parent = bar
-
-                        local fill = InstanceNew("Frame")
-                        fill.Size = UDim2New(0, 0, 1, 0)
-                        fill.BackgroundColor3 = Library.Theme.Accent
-                        fill.Parent = bar
-                        local corner6 = InstanceNew("UICorner")
-                        corner6.CornerRadius = UDimNew(1, 0)
-                        corner6.Parent = fill
-
-                        local val = data.Default or 0
-                        function slider:Set(v)
-                            val = MathClamp(v, data.Min, data.Max)
-                            local pct = (val - data.Min) / (data.Max - data.Min)
-                            fill.Size = UDim2New(pct, 0, 1, 0)
-                            valueLabel.Text = val .. (data.Suffix or "")
-                            if data.Callback then data.Callback(val) end
-                        end
-                        function slider:Get() return val end
-
-                        bar.MouseButton1Down:Connect(function()
-                            local dragging = true
-                            local conn
-                            conn = UserInputService.InputChanged:Connect(function(input)
-                                if input.UserInputType == Enum.UserInputType.MouseMovement then
-                                    if dragging then
-                                        local x = MathClamp((input.Position.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
-                                        slider:Set(data.Min + (data.Max - data.Min) * x)
-                                    end
-                                end
-                            end)
-                            bar.MouseButton1Up:Connect(function()
-                                dragging = false
-                                if conn then conn:Disconnect() end
-                            end)
-                        end)
-
-                        slider:Set(data.Default or 0)
-                        return slider
-                    end
-
-                    function section:Dropdown(data)
-                        -- Implementação simplificada
-                        return {}
-                    end
-
-                    function section:Button(data)
-                        local btn = InstanceNew("TextButton")
-                        btn.Size = UDim2New(1, 0, 0, 25)
-                        btn.BackgroundColor3 = Library.Theme.Element
-                        btn.Text = data.Name
-                        btn.TextColor3 = FromRGB(255,255,255)
-                        btn.Parent = sectionFrame
-                        local corner7 = InstanceNew("UICorner")
-                        corner7.CornerRadius = UDimNew(0, 4)
-                        corner7.Parent = btn
-                        btn.MouseButton1Click:Connect(function()
-                            if data.Callback then data.Callback() end
-                        end)
-                        return btn
-                    end
-
-                    function section:Label(name)
-                        local lbl = InstanceNew("TextLabel")
-                        lbl.Text = name
-                        lbl.Size = UDim2New(1, 0, 0, 20)
-                        lbl.BackgroundTransparency = 1
-                        lbl.TextColor3 = FromRGB(200,200,200)
-                        lbl.Parent = sectionFrame
-                        return lbl
-                    end
-
-                    return section
-                end
-
-                table.insert(win.Pages, sub)
-                return sub
-            end
-
-            return page
-        end
-
-        return win
-    end
-
-    function Library:CreateSettingsPage(window)
-        -- Simples
-    end
-
-    function Library:Notification(text, time, icon)
-        -- Simples
-    end
-
-    getgenv().Library = Library
+if _G.ObsidianLoaded then
+    print("⚠️ Script já está em execução! Use 'Unload Safely' antes de executar novamente.")
+    return
 end
+_G.ObsidianLoaded = true
 
--- ==========================================================
--- FIM DA BIBLIOTECA - AGORA SEU SCRIPT ORIGINAL
--- ==========================================================
+-- =============================================================================
+-- OBSIDIAN ESP - COMPLETO PARA BIBLIOTECA DO SAMET (CORRIGIDO)
+-- =============================================================================
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/devvcampos/the-walking3/refs/heads/main/Library.lua"))()
 
 -- ============================================
--- VARIÁVEIS GLOBAIS
+-- CONFIGURAÇÕES GLOBAIS
 -- ============================================
 _G.Settings_ESP = {
-    Enabled = false,
-    Box = true,
-    Name = true,
-    Distance = false,
-    Health = true,
-    Tracer = true,
-    Skeleton = false,
-    TeamCheck = true,
-    Corpses = false,
-    MaxDistance = 10000,
-    VisibilityCheck = true,
-    Scale = 100,
     DangerColor = Color3.fromRGB(255, 60, 60),
     SafeColor = Color3.fromRGB(130, 255, 130),
     VisibleColor = Color3.fromRGB(220, 220, 220),
 }
 
-_G.Aimbot = {
-    Enabled = false,
-    FOV = 120,
-    Mode = "Cabeça (Head)",
-    CircleEnabled = true,
-}
-
 -- ============================================
--- CRIAÇÃO DA JANELA E PÁGINAS
+-- SERVIÇOS E UTILITÁRIOS
 -- ============================================
-local Window = Library:Window({
-    Name = "Obsidian ESP",
-    SubTitle = "New UI",
-    ExpiresIn = "Forever"
-})
-
-local ESPPage = Window:Page({ Name = "ESP Configuration" })
-local AimbotPage = Window:Page({ Name = "Aimbot" })
-local TeleportPage = Window:Page({ Name = "Teleports" })
-
-local ESPSub = ESPPage:SubPage({ Name = "ESP Config" })
-local VisualSub = ESPPage:SubPage({ Name = "Visuals" })
-local AimbotSub = AimbotPage:SubPage({ Name = "Aimbot" })
-local TeleportSub = TeleportPage:SubPage({ Name = "Locais" })
-
--- ============================================
--- ABA ESP CONFIGURATION
--- ============================================
-local ESPGroup = ESPSub:Section({ Name = "ESP Configuration" })
-ESPGroup:Toggle({
-    Name = "Ligar ESP",
-    Default = false,
-    Callback = function(Value)
-        _G.Settings_ESP.Enabled = Value
-        if not Value then clearAllESP() end
-        manageCorpseConnection()
-    end
-})
-ESPGroup:Toggle({ Name = "Caixa", Default = true, Callback = function(v) _G.Settings_ESP.Box = v end })
-ESPGroup:Toggle({ Name = "Nome", Default = true, Callback = function(v) _G.Settings_ESP.Name = v end })
-ESPGroup:Toggle({ Name = "Distância", Default = false, Callback = function(v) _G.Settings_ESP.Distance = v end })
-ESPGroup:Toggle({ Name = "Barra de Vida", Default = true, Callback = function(v) _G.Settings_ESP.Health = v end })
-ESPGroup:Toggle({ Name = "Linha (Tracer)", Default = true, Callback = function(v) _G.Settings_ESP.Tracer = v end })
-ESPGroup:Toggle({ Name = "Check de Time", Default = true, Callback = function(v) _G.Settings_ESP.TeamCheck = v end })
-ESPGroup:Toggle({ Name = "Skeleton ESP (Bones)", Default = false, Callback = function(v) _G.Settings_ESP.Skeleton = v end })
-ESPGroup:Toggle({ Name = "Corpos Deads (Chams)", Default = false, Callback = function(v)
-    _G.Settings_ESP.Corpses = v
-    manageCorpseConnection()
-end })
-
-local VisualGroup = VisualSub:Section({ Name = "Visual Settings" })
-VisualGroup:Slider({
-    Name = "Distância Máxima",
-    Default = 10000,
-    Min = 500,
-    Max = 500000,
-    Suffix = "m",
-    Callback = function(Value) _G.Settings_ESP.MaxDistance = Value end
-})
-VisualGroup:Slider({
-    Name = "Escala do ESP",
-    Default = 100,
-    Min = 0,
-    Max = 200,
-    Suffix = "%",
-    Callback = function(Value) _G.Settings_ESP.Scale = Value end
-})
-VisualGroup:Toggle({ Name = "Check de Visibilidade (Raycast)", Default = true, Callback = function(v) _G.Settings_ESP.VisibilityCheck = v end })
-
--- ============================================
--- ABA TELEPORTS
--- ============================================
-local HospitalSection = TeleportSub:Section({ Name = "🏥 Hospitais" })
-local MilitarySection = TeleportSub:Section({ Name = "⚔️ Militares" })
-local CitySection = TeleportSub:Section({ Name = "🏙️ Cidades" })
-
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
-local function teleportTo(posX, posY, posZ)
-    local char = LocalPlayer.Character
-    if char and char:FindFirstChild("HumanoidRootPart") then
-        char.HumanoidRootPart.CFrame = CFrame.new(posX, posY, posZ)
+local espElements = {}
+local ESP_GUI = nil
+local espConnection = nil
+local frameCounter = 0
+
+local corpseCache = {}
+local corpseConnection = nil
+local corpseFrameCounter = 0
+local skeletonCache = {}
+
+local function isPlayerVisible(targetPos, ignoreList)
+    if not Library.Flags["ESP_VisibilityCheck"] then return true end
+    local origin = Camera.CFrame.Position
+    local direction = (targetPos - origin).Unit
+    local distance = (targetPos - origin).Magnitude
+    local params = RaycastParams.new()
+    params.FilterDescendantsInstances = ignoreList
+    params.FilterType = Enum.RaycastFilterType.Blacklist
+    params.IgnoreWater = true
+    local result = workspace:Raycast(origin, direction * distance, params)
+    return result == nil
+end
+
+local function isPlayerAlly(player)
+    if not Library.Flags["ESP_TeamCheck"] then return false end
+    return player.TeamColor == LocalPlayer.TeamColor
+end
+
+function clearAllESP()
+    for player, elements in pairs(espElements) do
+        if elements.Folder then elements.Folder:Destroy() end
+        espElements[player] = nil
+    end
+    if ESP_GUI then ESP_GUI:Destroy(); ESP_GUI = nil end
+
+    for corpse, highlight in pairs(corpseCache) do
+        if highlight then highlight:Destroy() end
+    end
+    corpseCache = {}
+
+    for player, data in pairs(skeletonCache) do
+        for _, line in pairs(data) do
+            if type(line) == "table" and line.Remove then
+                line:Remove()
+            end
+        end
+        skeletonCache[player] = nil
     end
 end
 
-HospitalSection:Button({ Name = "🏥 Hospital Central", Callback = function() teleportTo(-2178.95, 173.73 + 3.5, 4970.18) end })
-MilitarySection:Button({ Name = "🛰️ Satélite", Callback = function() teleportTo(-2009.40, 349.97 + 3.5, 897.70) end })
-MilitarySection:Button({ Name = "🚨 PD (Policia)", Callback = function() teleportTo(4643.18, 121.35 + 3.5, -1044.83) end })
-MilitarySection:Button({ Name = "🛡️ Bunker", Callback = function() teleportTo(5327.28, 128.99 + 3.5, -5802.90) end })
-CitySection:Button({ Name = "⛓️ Prisão", Callback = function() teleportTo(5166.66, 116.43 + 3.5, -3402.79) end })
-CitySection:Button({ Name = "🏪 Big Spot", Callback = function() teleportTo(1765.86, 241.35 + 3.5, 1452.03) end })
+function manageCorpseConnection()
+    local enabled = Library.Flags["ESP_Enabled"]
+    local corpses = Library.Flags["ESP_Corpses"]
+    if enabled and corpses then
+        if not corpseConnection then
+            corpseConnection = RunService.Heartbeat:Connect(updateCorpseESP)
+        end
+    else
+        if corpseConnection then
+            corpseConnection:Disconnect()
+            corpseConnection = nil
+            for corpse, highlight in pairs(corpseCache) do
+                if highlight then highlight:Destroy() end
+            end
+            corpseCache = {}
+        end
+    end
+end
 
 -- ============================================
--- ABA AIMBOT
+-- JANELA PRINCIPAL
 -- ============================================
-local AimbotGroup = AimbotSub:Section({ Name = "Configurações" })
+local Window = Library:Window({
+    Name = "Obsidian ESP",
+    SubTitle = "v2.0 - Samet Lib",
+    ExpiresIn = "∞"
+})
 
+-- ============================================
+-- PÁGINAS E SUBPÁGINAS
+-- ============================================
+local ESP_Page = Window:Page({Name = "ESP", Icon = "136879043989014"})
+local Visuals_Page = Window:Page({Name = "Visuals", Icon = "131595494666590"})
+local Teleports_Page = Window:Page({Name = "Teleports", Icon = "97491613646216"})
+local Aimbot_Page = Window:Page({Name = "Aimbot", Icon = "136879043989014"})
+local Menu_Page = Window:Page({Name = "Menu", Icon = "72732892493295"})
+
+-- Cria a página de configurações nativa (temas, arquivos, etc)
+Library:CreateSettingsPage(Window)
+
+-- ============================================
+-- ABA ESP (Aqui corrigimos a falta das variáveis)
+-- ============================================
+local ESP_Sub = ESP_Page:SubPage({Name = "Configuration"})
+local ESP_Sec = ESP_Sub:Section({Name = "ESP", Icon = "136879043989014", Side = 1})
+
+ESP_Sec:Toggle({Name = "Ligar ESP", Flag = "ESP_Enabled", Default = false, Callback = function(v)
+    if not v then clearAllESP() end
+    manageCorpseConnection()
+end})
+ESP_Sec:Toggle({Name = "Caixa", Flag = "ESP_Box", Default = true})
+ESP_Sec:Toggle({Name = "Nome", Flag = "ESP_Name", Default = true})
+ESP_Sec:Toggle({Name = "Distância", Flag = "ESP_Distance", Default = false})
+ESP_Sec:Toggle({Name = "Barra de Vida", Flag = "ESP_Health", Default = true})
+ESP_Sec:Toggle({Name = "Linha (Tracer)", Flag = "ESP_Tracer", Default = true})
+ESP_Sec:Toggle({Name = "Check de Time", Flag = "ESP_TeamCheck", Default = true})
+ESP_Sec:Toggle({Name = "Skeleton ESP", Flag = "ESP_Skeleton", Default = false})
+ESP_Sec:Toggle({Name = "Corpos Deads", Flag = "ESP_Corpses", Default = false, Callback = function(v)
+    manageCorpseConnection()
+end})
+
+-- ============================================
+-- ABA VISUALS (Cores e Sliders)
+-- ============================================
+local Vis_Sub = Visuals_Page:SubPage({Name = "Visual Settings"})
+local Vis_SecL = Vis_Sub:Section({Name = "Ajustes", Icon = "131595494666590", Side = 1})
+local Vis_SecR = Vis_Sub:Section({Name = "Cores", Icon = "131595494666590", Side = 2})
+
+Vis_SecL:Slider({Name = "Distância Máxima", Flag = "ESP_MaxDistance", Min = 500, Max = 500000, Default = 10000, Decimals = 1, Suffix = "m"})
+Vis_SecL:Slider({Name = "Escala do ESP", Flag = "ESP_Scale", Min = 0, Max = 200, Default = 100, Decimals = 1, Suffix = "%"})
+Vis_SecL:Toggle({Name = "Check de Visibilidade", Flag = "ESP_VisibilityCheck", Default = true})
+
+Vis_SecR:Label("Cor do Inimigo"):Colorpicker({Flag = "ESP_DangerColor", Default = _G.Settings_ESP.DangerColor, Callback = function(v) _G.Settings_ESP.DangerColor = v end})
+Vis_SecR:Label("Cor do Visível"):Colorpicker({Flag = "ESP_VisibleColor", Default = _G.Settings_ESP.VisibleColor, Callback = function(v) _G.Settings_ESP.VisibleColor = v end})
+Vis_SecR:Label("Cor do Aliado"):Colorpicker({Flag = "ESP_SafeColor", Default = _G.Settings_ESP.SafeColor, Callback = function(v) _G.Settings_ESP.SafeColor = v end})
+
+-- ============================================
+-- ABA TELEPORTS
+-- ============================================
+local Tel_Sub = Teleports_Page:SubPage({Name = "Locations"})
+local Tel_Sec = Tel_Sub:Section({Name = "Teleports", Icon = "97491613646216", Side = 1})
+
+local function teleportTo(x, y, z)
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        char.HumanoidRootPart.CFrame = CFrame.new(x, y, z)
+        Library:Notification("Teleportado!", 2, nil)
+    else
+        Library:Notification("Personagem não encontrado.", 2, nil)
+    end
+end
+
+Tel_Sec:Button({Name = "🏥 Hospital Central", Callback = function() teleportTo(-2178.95, 173.73+3.5, 4970.18) end})
+Tel_Sec:Button({Name = "🛰️ Satélite", Callback = function() teleportTo(-2009.40, 349.97+3.5, 897.70) end})
+Tel_Sec:Button({Name = "🚨 PD (Policia)", Callback = function() teleportTo(4643.18, 121.35+3.5, -1044.83) end})
+Tel_Sec:Button({Name = "🛡️ Bunker", Callback = function() teleportTo(5327.28, 128.99+3.5, -5802.90) end})
+Tel_Sec:Button({Name = "⛓️ Prisão", Callback = function() teleportTo(5166.66, 116.43+3.5, -3402.79) end})
+Tel_Sec:Button({Name = "🏪 Big Spot", Callback = function() teleportTo(1765.86, 241.35+3.5, 1452.03) end})
+
+-- ============================================
+-- CÍRCULO DE FOV (MOVIDO PARA CÁ - ANTES DO AIMBOT)
+-- ============================================
 local CircleGui = Instance.new("ScreenGui")
 CircleGui.Name = "FOVCircle"
 CircleGui.ResetOnSpawn = false
@@ -441,50 +200,47 @@ local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(1, 0)
 UICorner.Parent = CircleFrame
 
-local function UpdateFOVCircle()
-    if not _G.Aimbot.CircleEnabled then CircleFrame.Visible = false return end
-    local vpSize = Camera.ViewportSize
-    local fov = _G.Aimbot.FOV
+function UpdateFOVCircle()
+    if not Library.Flags["Aimbot_Circle"] then CircleFrame.Visible = false return end
+    local vpSize = workspace.CurrentCamera.ViewportSize
+    local fov = Library.Flags["Aimbot_FOV"] or 120
     local radius = math.clamp(fov * 3, 20, vpSize.Y / 1.5)
     CircleFrame.Position = UDim2.new(0.5, -radius, 0.5, -radius)
     CircleFrame.Size = UDim2.new(0, radius*2, 0, radius*2)
     CircleFrame.Visible = true
 end
 
-AimbotGroup:Toggle({ Name = "Ativar Aimbot (Snap)", Default = false, Callback = function(v) _G.Aimbot.Enabled = v end })
-AimbotGroup:Slider({ Name = "Campo de Visão (FOV)", Default = 120, Min = 20, Max = 180, Suffix = "°", Callback = function(v) _G.Aimbot.FOV = v; UpdateFOVCircle() end })
-AimbotGroup:Toggle({ Name = "Mostrar Círculo de FOV", Default = true, Callback = function(v) _G.Aimbot.CircleEnabled = v; UpdateFOVCircle() end })
+-- ============================================
+-- ABA AIMBOT (AGORA A FUNÇÃO JÁ EXISTE!)
+-- ============================================
+local Aim_Sub = Aimbot_Page:SubPage({Name = "Aimbot"})
+local Aim_Sec = Aim_Sub:Section({Name = "Configurações", Icon = "136879043989014", Side = 1})
+
+Aim_Sec:Toggle({Name = "Ativar Aimbot (Snap)", Flag = "Aimbot_Enabled", Default = false})
+Aim_Sec:Slider({Name = "Campo de Visão (FOV)", Flag = "Aimbot_FOV", Min = 20, Max = 180, Default = 120, Decimals = 1, Suffix = "°"})
+    UpdateFOVCircle()
+
+Aim_Sec:Dropdown({Name = "Alvo Preferido", Flag = "Aimbot_Mode", Items = {"Cabeça (Head)", "Torso (Body)"}, Default = "Cabeça (Head)", Multi = false})
+Aim_Sec:Toggle({Name = "Mostrar Círculo de FOV", Flag = "Aimbot_Circle", Default = true, Callback = function(v)
+    UpdateFOVCircle()
+end})
 
 -- ============================================
--- LÓGICA DO ESP, ESQUELETO, CORPOS E AIMBOT (MANTIDA)
+-- ABA MENU
 -- ============================================
-local espElements = {}
-local ESP_GUI = nil
-local espConnection = nil
-local frameCounter = 0
-local corpseCache = {}
-local corpseConnection = nil
-local corpseFrameCounter = 0
-local skeletonCache = {}
+local Menu_Sub = Menu_Page:SubPage({Name = "Principal"})
+local Menu_Sec = Menu_Sub:Section({Name = "Opções", Icon = "72732892493295", Side = 1})
+Menu_Sec:Button({Name = "Unload Safely", Callback = function()
+    clearAllESP()
+    if CircleGui then CircleGui:Destroy() end
+    _G.ObsidianLoaded = nil
+    Library:Unload()
+end})
 
-local function isPlayerVisible(targetPos, ignoreList)
-    if not _G.Settings_ESP.VisibilityCheck then return true end
-    local origin = Camera.CFrame.Position
-    local direction = (targetPos - origin).Unit
-    local distance = (targetPos - origin).Magnitude
-    local params = RaycastParams.new()
-    params.FilterDescendantsInstances = ignoreList
-    params.FilterType = Enum.RaycastFilterType.Blacklist
-    params.IgnoreWater = true
-    return workspace:Raycast(origin, direction * distance, params) == nil
-end
-
-local function isPlayerAlly(player)
-    if not _G.Settings_ESP.TeamCheck then return false end
-    return player.TeamColor == LocalPlayer.TeamColor
-end
-
-local function getMasterGUI()
+-- ============================================
+-- LÓGICA DO ESP
+-- ============================================
+local getMasterGUI = function()
     if ESP_GUI then return ESP_GUI end
     ESP_GUI = Instance.new("ScreenGui")
     ESP_GUI.Name = "ESP_Minimal"
@@ -567,7 +323,16 @@ function createESPForPlayer(player)
     healthBg.Visible = false
     healthBg.Parent = folder
 
-    espElements[player] = { Folder = folder, Box = box, BoxStroke = boxStroke, Tracer = tracer, Name = nameLabel, Distance = distLabel, HealthBar = healthBar, HealthBg = healthBg }
+    espElements[player] = {
+        Folder = folder,
+        Box = box,
+        BoxStroke = boxStroke,
+        Tracer = tracer,
+        Name = nameLabel,
+        Distance = distLabel,
+        HealthBar = healthBar,
+        HealthBg = healthBg,
+    }
 end
 
 local function hidePlayerESP(elements)
@@ -580,45 +345,35 @@ local function hidePlayerESP(elements)
     elements.HealthBg.Visible = false
 end
 
-function clearAllESP()
-    for player, elements in pairs(espElements) do
-        if elements.Folder then elements.Folder:Destroy() end
-        espElements[player] = nil
-    end
-    if ESP_GUI then ESP_GUI:Destroy(); ESP_GUI = nil end
-    for corpse, highlight in pairs(corpseCache) do if highlight then highlight:Destroy() end end
-    corpseCache = {}
-    for player, data in pairs(skeletonCache) do
-        for _, line in pairs(data) do if type(line) == "table" and line.Remove then line:Remove() end end
-        skeletonCache[player] = nil
-    end
-end
-
-Players.PlayerRemoving:Connect(function(player)
-    if espElements[player] then espElements[player].Folder:Destroy(); espElements[player] = nil end
-    if skeletonCache[player] then
-        for _, line in pairs(skeletonCache[player]) do if type(line) == "table" and line.Remove then line:Remove() end end
-        skeletonCache[player] = nil
-    end
-end)
-
--- ============================================
--- SISTEMA DE SKELETON ESP
--- ============================================
+-- Skeleton ESP
 local function createSkeletonForPlayer(player)
-    local data = { HeadTorso = Drawing.new("Line"), TorsoLegs = Drawing.new("Line"), ArmL = Drawing.new("Line"), ArmR = Drawing.new("Line"), LegL = Drawing.new("Line"), LegR = Drawing.new("Line") }
-    for _, line in pairs(data) do line.Thickness = 2; line.Transparency = 0.3; line.Visible = false end
+    local data = {
+        HeadTorso = Drawing.new("Line"),
+        TorsoLegs = Drawing.new("Line"),
+        ArmL = Drawing.new("Line"),
+        ArmR = Drawing.new("Line"),
+        LegL = Drawing.new("Line"),
+        LegR = Drawing.new("Line")
+    }
+    for _, line in pairs(data) do
+        line.Thickness = 2
+        line.Transparency = 0.3
+        line.Visible = false
+    end
     skeletonCache[player] = data
     return data
 end
 
 local function updateSkeleton(player, camera, espColor)
-    local data = skeletonCache[player] or createSkeletonForPlayer(player)
+    local data = skeletonCache[player]
+    if not data then data = createSkeletonForPlayer(player) end
+
     local char = player.Character
     if not char then
         for _, line in pairs(data) do line.Visible = false end
         return
     end
+
     local head = char:FindFirstChild("Head", true)
     local upperTorso = char:FindFirstChild("UpperTorso", true) or char:FindFirstChild("Torso", true)
     local lowerTorso = char:FindFirstChild("LowerTorso", true)
@@ -634,136 +389,354 @@ local function updateSkeleton(player, camera, espColor)
         end
         return nil
     end
-    local headPos, upperPos, lowerPos, armLPos, armRPos, legLPos, legRPos = getScreenPos(head), getScreenPos(upperTorso), getScreenPos(lowerTorso), getScreenPos(leftArm), getScreenPos(rightArm), getScreenPos(leftLeg), getScreenPos(rightLeg)
-    local function updateLine(line, p1, p2) if line and p1 and p2 then line.From = p1; line.To = p2; line.Color = espColor; line.Visible = true elseif line then line.Visible = false end end
+
+    local headPos = getScreenPos(head)
+    local upperPos = getScreenPos(upperTorso)
+    local lowerPos = getScreenPos(lowerTorso)
+    local armLPos = getScreenPos(leftArm)
+    local armRPos = getScreenPos(rightArm)
+    local legLPos = getScreenPos(leftLeg)
+    local legRPos = getScreenPos(rightLeg)
+
+    local function updateLine(line, pos1, pos2)
+        if line and pos1 and pos2 then
+            line.From = pos1
+            line.To = pos2
+            line.Color = espColor
+            line.Visible = true
+        elseif line then
+            line.Visible = false
+        end
+    end
+
     updateLine(data.HeadTorso, headPos, upperPos)
-    if lowerTorso and lowerPos then updateLine(data.TorsoLegs, upperPos, lowerPos); updateLine(data.LegL, lowerPos, legLPos); updateLine(data.LegR, lowerPos, legRPos)
-    else updateLine(data.TorsoLegs, upperPos, legLPos); updateLine(data.LegL, upperPos, legLPos); updateLine(data.LegR, upperPos, legRPos) end
-    updateLine(data.ArmL, upperPos, armLPos); updateLine(data.ArmR, upperPos, armRPos)
+    if lowerTorso and lowerPos then
+        updateLine(data.TorsoLegs, upperPos, lowerPos)
+        updateLine(data.LegL, lowerPos, legLPos)
+        updateLine(data.LegR, lowerPos, legRPos)
+    else
+        updateLine(data.TorsoLegs, upperPos, legLPos)
+        updateLine(data.LegL, upperPos, legLPos)
+        updateLine(data.LegR, upperPos, legRPos)
+    end
+    updateLine(data.ArmL, upperPos, armLPos)
+    updateLine(data.ArmR, upperPos, armRPos)
 end
 
 -- ============================================
--- LOOP DE ATUALIZAÇÃO DO ESP (MANTIDO)
+-- LOOP PRINCIPAL DO ESP (Aqui estava o maior erro)
 -- ============================================
 local function updateESP()
-    if not _G.Settings_ESP.Enabled then return end
+    local enabled = Library.Flags["ESP_Enabled"]
+    if not enabled then return end
+
     frameCounter = frameCounter + 1
     if frameCounter % 2 ~= 0 then return end
+
     local camera = workspace.CurrentCamera
     if not camera then return end
     local localChar = LocalPlayer.Character
     if not localChar then return end
-    local cameraPos = camera.CFrame.Position
-    local maxDist = _G.Settings_ESP.MaxDistance
-    local maxDistBuffer = maxDist + 50
-    local scaleFactor = _G.Settings_ESP.Scale / 100
 
-    for _, player in pairs(Players:GetPlayers()) do
+    local box = Library.Flags["ESP_Box"]
+    local name = Library.Flags["ESP_Name"]
+    local distance = Library.Flags["ESP_Distance"]
+    local health = Library.Flags["ESP_Health"]
+    local tracer = Library.Flags["ESP_Tracer"]
+    local skeleton = Library.Flags["ESP_Skeleton"]
+    local maxDistance = Library.Flags["ESP_MaxDistance"]
+    local scale = Library.Flags["ESP_Scale"]
+
+    local maxDistBuffer = maxDistance + 50
+    local scaleFactor = scale / 100
+    local cameraPos = camera.CFrame.Position
+    local playersList = Players:GetPlayers()
+
+    for _, player in pairs(playersList) do
         if player == LocalPlayer then continue end
+
         local character = player.Character
-        if not character then if espElements[player] then hidePlayerESP(espElements[player]) end continue end
+        if not character then
+            if espElements[player] then hidePlayerESP(espElements[player]) end
+            continue
+        end
+
         local hrp = character:FindFirstChild("HumanoidRootPart")
         local head = character:FindFirstChild("Head")
         local humanoid = character:FindFirstChild("Humanoid")
-        if not (hrp and head and humanoid) or humanoid.Health <= 0 then if espElements[player] then hidePlayerESP(espElements[player]) end continue end
-        local distance = (cameraPos - hrp.Position).Magnitude
-        if distance > maxDistBuffer then if espElements[player] then hidePlayerESP(espElements[player]) end continue end
+        if not (hrp and head and humanoid) or humanoid.Health <= 0 then
+            if espElements[player] then hidePlayerESP(espElements[player]) end
+            continue
+        end
+
+        local dist = (cameraPos - hrp.Position).Magnitude
+        if dist > maxDistBuffer then
+            if espElements[player] then hidePlayerESP(espElements[player]) end
+            continue
+        end
+
         local pos, onScreen = camera:WorldToViewportPoint(hrp.Position)
-        if not onScreen or pos.Z <= 0 then if espElements[player] then hidePlayerESP(espElements[player]) end continue end
+        if not onScreen or pos.Z <= 0 then
+            if espElements[player] then hidePlayerESP(espElements[player]) end
+            continue
+        end
 
         if not espElements[player] then createESPForPlayer(player) end
         local el = espElements[player]
         if not el then continue end
 
         local espColor
-        if isPlayerAlly(player) then espColor = _G.Settings_ESP.SafeColor
-        else local visible = isPlayerVisible(hrp.Position, {localChar, character}); espColor = visible and _G.Settings_ESP.VisibleColor or _G.Settings_ESP.DangerColor end
+        if isPlayerAlly(player) then
+            espColor = _G.Settings_ESP.SafeColor
+        else
+            local visible = isPlayerVisible(hrp.Position, {localChar, character})
+            espColor = visible and _G.Settings_ESP.VisibleColor or _G.Settings_ESP.DangerColor
+        end
 
         local topPos, topOn = camera:WorldToViewportPoint(head.Position + Vector3.new(0, 1.5, 0))
         local bottomPos, botOn = camera:WorldToViewportPoint(hrp.Position - Vector3.new(0, 3, 0))
-        if not topOn or not botOn then hidePlayerESP(el); continue end
+        if not topOn or not botOn then
+            hidePlayerESP(el)
+            continue
+        end
+
         local rawHeight = math.abs(topPos.Y - bottomPos.Y)
-        local scaledHeight = math.clamp(rawHeight * scaleFactor, 5, 500)
+        local scaledHeight = rawHeight * scaleFactor
+        scaledHeight = math.clamp(scaledHeight, 5, 500)
         local width = scaledHeight * 0.45
         local posX = pos.X - width/2
         local posY = topPos.Y - 2
 
-        if _G.Settings_ESP.Box then el.Box.Position = UDim2.new(0, posX, 0, posY); el.Box.Size = UDim2.new(0, width, 0, scaledHeight); el.BoxStroke.Color = espColor; el.Box.Visible = true else el.Box.Visible = false end
-        if _G.Settings_ESP.Tracer then
-            local cx, cy = camera.ViewportSize.X/2, camera.ViewportSize.Y/2
-            local dx, dy = pos.X - cx, pos.Y - cy
-            local length = math.sqrt(dx*dx + dy*dy)
-            el.Tracer.Position = UDim2.new(0, cx, 0, cy); el.Tracer.Size = UDim2.new(0, length, 0, 1 * scaleFactor); el.Tracer.Rotation = math.deg(math.atan2(dy, dx)); el.Tracer.BackgroundColor3 = espColor; el.Tracer.BackgroundTransparency = 0.4; el.Tracer.Visible = true
-        else el.Tracer.Visible = false end
-        if _G.Settings_ESP.Name then el.Name.Text = player.Name; local fs = math.clamp(scaledHeight * 0.13, 10, 18); el.Name.TextSize = fs; el.Name.Position = UDim2.new(0, pos.X - 100, 0, topPos.Y - fs - 4); el.Name.Size = UDim2.new(0, 200, 0, fs + 4); el.Name.TextColor3 = espColor; el.Name.Visible = true else el.Name.Visible = false end
-        if _G.Settings_ESP.Distance then el.Distance.Text = math.floor(distance) .. "m"; local fs = math.clamp(scaledHeight * 0.10, 10, 14); el.Distance.TextSize = fs; el.Distance.Position = UDim2.new(0, pos.X - 100, 0, bottomPos.Y + 4); el.Distance.Size = UDim2.new(0, 200, 0, fs + 4); el.Distance.TextColor3 = Color3.fromRGB(180,180,180); el.Distance.Visible = true else el.Distance.Visible = false end
-        if _G.Settings_ESP.Health then
-            local pct = humanoid.Health / humanoid.MaxHealth
-            local bw = 2 * scaleFactor
-            local bx = posX + width + (4 * scaleFactor)
-            el.HealthBg.Position = UDim2.new(0, bx, 0, posY); el.HealthBg.Size = UDim2.new(0, bw, 0, scaledHeight); el.HealthBg.Visible = true
-            local fh = scaledHeight * pct
-            el.HealthBar.Position = UDim2.new(0, bx, 0, posY + scaledHeight - fh); el.HealthBar.Size = UDim2.new(0, bw, 0, fh); el.HealthBar.BackgroundColor3 = Color3.fromHSV(pct * 0.33, 1, 1); el.HealthBar.Visible = true
-        else el.HealthBar.Visible = false; el.HealthBg.Visible = false end
-        if _G.Settings_ESP.Skeleton then updateSkeleton(player, camera, espColor)
-        else local s = skeletonCache[player]; if s then for _, l in pairs(s) do if type(l) == "table" then l.Visible = false end end end end
-    end
-end
-espConnection = RunService.RenderStepped:Connect(updateESP)
+        -- Caixa
+        if box then
+            el.Box.Position = UDim2.new(0, posX, 0, posY)
+            el.Box.Size = UDim2.new(0, width, 0, scaledHeight)
+            el.BoxStroke.Color = espColor
+            el.Box.Visible = true
+        else
+            el.Box.Visible = false
+        end
 
--- ============================================
--- SISTEMA DE CHAMS PARA CORPOS (MANTIDO)
--- ============================================
-local function updateCorpseESP()
-    if not _G.Settings_ESP.Enabled or not _G.Settings_ESP.Corpses then return end
-    corpseFrameCounter = corpseFrameCounter + 1
-    if corpseFrameCounter % 30 ~= 0 then return end
-    local f = workspace:FindFirstChild("Corpses")
-    if not f then for c, h in pairs(corpseCache) do h:Destroy(); corpseCache[c] = nil end return end
-    local current = {}
-    for _, child in ipairs(f:GetChildren()) do
-        if child:IsA("Model") or child:IsA("Folder") then
-            for _, part in ipairs(child:GetDescendants()) do
-                if part:IsA("BasePart") and (part.Name == "Head" or part.Name == "Head2" or part.Name == "HumanoidRootPart" or part.Name == "Body") then table.insert(current, child); break end
+        -- Tracer
+        if tracer then
+            local centerX = camera.ViewportSize.X/2
+            local centerY = camera.ViewportSize.Y/2
+            local dx = pos.X - centerX
+            local dy = pos.Y - centerY
+            local length = math.sqrt(dx*dx + dy*dy)
+            local angle = math.atan2(dy, dx)
+
+            el.Tracer.Position = UDim2.new(0, centerX, 0, centerY)
+            el.Tracer.Size = UDim2.new(0, length, 0, 1 * scaleFactor)
+            el.Tracer.Rotation = math.deg(angle)
+            el.Tracer.BackgroundColor3 = espColor
+            el.Tracer.BackgroundTransparency = 0.4
+            el.Tracer.Visible = true
+        else
+            el.Tracer.Visible = false
+        end
+
+        -- Nome
+        if name then
+            el.Name.Text = player.Name
+            local fontSize = math.clamp(scaledHeight * 0.13, 10, 18)
+            el.Name.TextSize = fontSize
+            el.Name.Position = UDim2.new(0, pos.X - 100, 0, topPos.Y - fontSize - 4)
+            el.Name.Size = UDim2.new(0, 200, 0, fontSize + 4)
+            el.Name.TextColor3 = espColor
+            el.Name.Visible = true
+        else
+            el.Name.Visible = false
+        end
+
+        -- Distância
+        if distance then
+            el.Distance.Text = math.floor(dist) .. "m"
+            local fontSize = math.clamp(scaledHeight * 0.10, 10, 14)
+            el.Distance.TextSize = fontSize
+            el.Distance.Position = UDim2.new(0, pos.X - 100, 0, bottomPos.Y + 4)
+            el.Distance.Size = UDim2.new(0, 200, 0, fontSize + 4)
+            el.Distance.TextColor3 = Color3.fromRGB(180,180,180)
+            el.Distance.Visible = true
+        else
+            el.Distance.Visible = false
+        end
+
+        -- Barra de Vida
+        if health then
+            local healthPercent = humanoid.Health / humanoid.MaxHealth
+            local barWidth = 2 * scaleFactor
+            local padding = 4 * scaleFactor
+            local barX = posX + width + padding
+
+            el.HealthBg.Position = UDim2.new(0, barX, 0, posY)
+            el.HealthBg.Size = UDim2.new(0, barWidth, 0, scaledHeight)
+            el.HealthBg.Visible = true
+
+            local filledHeight = scaledHeight * healthPercent
+            el.HealthBar.Position = UDim2.new(0, barX, 0, posY + scaledHeight - filledHeight)
+            el.HealthBar.Size = UDim2.new(0, barWidth, 0, filledHeight)
+            el.HealthBar.BackgroundColor3 = Color3.fromHSV(healthPercent * 0.33, 1, 1)
+            el.HealthBar.Visible = true
+        else
+            el.HealthBar.Visible = false
+            el.HealthBg.Visible = false
+        end
+
+        -- Skeleton
+        if skeleton then
+            updateSkeleton(player, camera, espColor)
+        else
+            local skelData = skeletonCache[player]
+            if skelData then
+                for _, line in pairs(skelData) do
+                    if type(line) == "table" then
+                        line.Visible = false
+                    end
+                end
             end
         end
     end
-    for c, h in pairs(corpseCache) do if not c.Parent or not table.find(current, c) then h:Destroy(); corpseCache[c] = nil end end
-    for _, c in ipairs(current) do if not corpseCache[c] then local h = Instance.new("Highlight"); h.FillColor = Color3.fromRGB(170, 0, 255); h.OutlineColor = Color3.fromRGB(255, 255, 255); h.FillTransparency = 0.8; h.OutlineTransparency = 0; h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop; h.Parent = c; corpseCache[c] = h end end
 end
-function manageCorpseConnection()
-    if _G.Settings_ESP.Corpses and _G.Settings_ESP.Enabled then
-        if not corpseConnection then corpseConnection = RunService.Heartbeat:Connect(updateCorpseESP) end
-    else
-        if corpseConnection then corpseConnection:Disconnect(); corpseConnection = nil; for c, h in pairs(corpseCache) do if h then h:Destroy() end end; corpseCache = {} end
+
+espConnection = RunService.RenderStepped:Connect(updateESP)
+
+-- ============================================
+-- FUNÇÃO DE CORPOS (Erro de sintaxe corrigido)
+-- ============================================
+function updateCorpseESP()
+    local enabled = Library.Flags["ESP_Enabled"]
+    local corpses = Library.Flags["ESP_Corpses"]
+    if not enabled or not corpses then return end
+
+    corpseFrameCounter = corpseFrameCounter + 1
+    if corpseFrameCounter % 30 ~= 0 then return end
+
+    local corpsesFolder = workspace:FindFirstChild("Corpses")
+    if not corpsesFolder then
+        for corpse, highlight in pairs(corpseCache) do
+            highlight:Destroy()
+            corpseCache[corpse] = nil
+        end
+        return
+    end
+
+    local currentCorpses = {}
+    for _, child in ipairs(corpsesFolder:GetChildren()) do
+        if child:IsA("Model") or child:IsA("Folder") then
+            local hasBodyPart = false
+            for _, part in ipairs(child:GetDescendants()) do
+                if part:IsA("BasePart") and (part.Name == "Head" or part.Name == "Head2" or part.Name == "HumanoidRootPart" or part.Name == "Body") then
+                    hasBodyPart = true
+                    break
+                end
+            end
+            if hasBodyPart then
+                table.insert(currentCorpses, child)
+            end
+        end
+    end
+
+    for corpse, highlight in pairs(corpseCache) do
+        if not corpse.Parent or not table.find(currentCorpses, corpse) then
+            highlight:Destroy()
+            corpseCache[corpse] = nil
+        end
+    end
+
+    for _, corpse in ipairs(currentCorpses) do
+        if not corpseCache[corpse] then
+            local highlight = Instance.new("Highlight")
+            highlight.FillColor = Color3.fromRGB(170, 0, 255)
+            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+            highlight.FillTransparency = 0.8
+            highlight.OutlineTransparency = 0
+            highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+            highlight.Parent = corpse
+            corpseCache[corpse] = highlight
+        end
     end
 end
 
 -- ============================================
--- BACKEND DO AIMBOT (MANTIDO)
+-- AIMBOT BACKEND (Aqui corrigimos a variável faltante)
 -- ============================================
 local function getAimbotTarget()
-    if not _G.Aimbot.Enabled then return nil end
-    local closestTarget, closestDist = nil, _G.Aimbot.FOV
-    local cx, cy = Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
-            local hrp = p.Character.HumanoidRootPart
-            local sp, os = Camera:WorldToViewportPoint(hrp.Position)
-            if os and sp.Z > 0 then
-                local d = math.sqrt((sp.X-cx)^2 + (sp.Y-cy)^2)
-                if d < closestDist and isPlayerVisible(hrp.Position, {LocalPlayer.Character, p.Character}) then closestDist = d; closestTarget = p end
+    local enabled = Library.Flags["Aimbot_Enabled"]
+    if not enabled then return nil end
+    
+    local fov = Library.Flags["Aimbot_FOV"] or 120
+    local closestTarget = nil
+    local closestDistance = fov -- <-- Corrigido: Definimos a variável inicial
+    local cameraPos = Camera.CFrame.Position
+    local centerX = Camera.ViewportSize.X / 2
+    local centerY = Camera.ViewportSize.Y / 2
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local char = player.Character
+            if char then
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                local humanoid = char:FindFirstChild("Humanoid")
+                if hrp and humanoid and humanoid.Health > 0 then
+                    local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+                    if onScreen and screenPos.Z > 0 then
+                        local dx = screenPos.X - centerX
+                        local dy = screenPos.Y - centerY
+                        local distFromCenter = math.sqrt(dx*dx + dy*dy)
+                        if distFromCenter < closestDistance then
+                            if isPlayerVisible(hrp.Position, {LocalPlayer.Character, char}) then
+                                closestDistance = distFromCenter
+                                closestTarget = player
+                            end
+                        end
+                    end
+                end
             end
         end
     end
     return closestTarget
 end
-UserInputService.InputBegan:Connect(function(i, p)
-    if p or i.UserInputType ~= Enum.UserInputType.MouseButton1 or not _G.Aimbot.Enabled then return end
-    local t = getAimbotTarget()
-    if t and t.Character then
-        local part = t.Character:FindFirstChild(_G.Aimbot.Mode == "Cabeça (Head)" and "Head" or "HumanoidRootPart") or t.Character:FindFirstChild("Torso")
-        if part then local orig = Camera.CFrame; Camera.CFrame = CFrame.new(orig.Position, part.Position); RunService.RenderStepped:Wait(); Camera.CFrame = orig end
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
+    if Library.Flags["Aimbot_Enabled"] then
+        local target = getAimbotTarget()
+        if target and target.Character then
+            local aimMode = Library.Flags["Aimbot_Mode"] or "Cabeça (Head)"
+            local targetPart = target.Character:FindFirstChild("Head")
+            if aimMode == "Torso (Body)" then
+                targetPart = target.Character:FindFirstChild("HumanoidRootPart") or target.Character:FindFirstChild("Torso")
+            end
+            if targetPart then
+                local originalCFrame = Camera.CFrame
+                Camera.CFrame = CFrame.new(originalCFrame.Position, targetPart.Position)
+                RunService.RenderStepped:Wait()
+                Camera.CFrame = originalCFrame
+                Library:Notification("💀 Tiro desviado para " .. target.Name, 1, nil)
+            end
+        end
+    end
+end)
+
+-- ============================================
+-- EVENTOS DE REMOÇÃO DE PLAYER
+-- ============================================
+Players.PlayerRemoving:Connect(function(player)
+    local elements = espElements[player]
+    if elements then
+        elements.Folder:Destroy()
+        espElements[player] = nil
+    end
+    local skelData = skeletonCache[player]
+    if skelData then
+        for _, line in pairs(skelData) do
+            if type(line) == "table" and line.Remove then
+                line:Remove()
+            end
+        end
+        skeletonCache[player] = nil
     end
 end)
 
@@ -772,4 +745,6 @@ end)
 -- ============================================
 task.wait(0.5)
 UpdateFOVCircle()
-print("✅ Script carregado com sucesso!")
+Library:Notification("✅ Obsidian ESP carregado! (Samet Lib)", 4, nil)
+
+return Library
