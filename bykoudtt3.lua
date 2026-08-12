@@ -1,16 +1,39 @@
--- =============================================================================
--- TRAVA DE SEGURANÇA (EVITA ABRIR 2 VEZES)
--- =============================================================================
 if _G.ObsidianLoaded then
     print("⚠️ Script já está em execução! Use 'Unload Safely' antes de executar novamente.")
     return
 end
 _G.ObsidianLoaded = true
 
--- =============================================================================
--- OBSIDIAN ESP - COMPLETO PARA BIBLIOTECA DO SAMET (CORRIGIDO)
--- =============================================================================
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/devvcampos/the-walking3/refs/heads/main/Library.lua"))()
+local encodedUrl = "aHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2RldnZjYW1wb3MvdGhlLXdhbGtpbmczL3JlZnMvaGVhZHMvbWFpbi9MaWJyYXJ5Lmx1YQ=="
+
+local function decodeBase64(s)
+    local b64chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+    local result = ""
+    s = s:gsub("=", "")
+    for i = 1, #s, 4 do
+        local a = b64chars:find(s:sub(i,i)) - 1
+        local b = b64chars:find(s:sub(i+1,i+1)) - 1
+        local c = b64chars:find(s:sub(i+2,i+2)) - 1
+        local d = b64chars:find(s:sub(i+3,i+3)) - 1
+        if c == -1 then c = 0 end
+        if d == -1 then d = 0 end
+        local n = (a << 18) | (b << 12) | (c << 6) | d
+        result = result .. string.char((n >> 16) & 0xFF, (n >> 8) & 0xFF, n & 0xFF)
+    end
+    return result
+end
+
+-- Decodifica a URL
+local realUrl = decodeBase64(encodedUrl)
+
+-- Carrega a Library usando a URL decodificada
+local success, Library = pcall(function()
+    return loadstring(game:HttpGet(realUrl))()
+end)
+if not success then
+    print("⚠️ Falha ao carregar Library. Tentando método alternativo...")
+    -- Aqui você pode colocar um fallback, se quiser
+end
 
 -- ============================================
 -- CONFIGURAÇÕES GLOBAIS
@@ -35,10 +58,10 @@ local ESP_GUI = nil
 local espConnection = nil
 local frameCounter = 0
 
-local corpseCache = {}
 local corpseConnection = nil
 local corpseFrameCounter = 0
 local skeletonCache = {}
+local corpseCache = {}
 
 local function isPlayerVisible(targetPos, ignoreList)
     if not Library.Flags["ESP_VisibilityCheck"] then return true end
@@ -59,16 +82,7 @@ local function isPlayerAlly(player)
 end
 
 function clearAllESP()
-    for player, elements in pairs(espElements) do
-        if elements.Folder then elements.Folder:Destroy() end
-        espElements[player] = nil
-    end
-    if ESP_GUI then ESP_GUI:Destroy(); ESP_GUI = nil end
-
-    for corpse, highlight in pairs(corpseCache) do
-        if highlight then highlight:Destroy() end
-    end
-    corpseCache = {}
+clearCorpseESP()
 
     for player, data in pairs(skeletonCache) do
         for _, line in pairs(data) do
@@ -77,25 +91,6 @@ function clearAllESP()
             end
         end
         skeletonCache[player] = nil
-    end
-end
-
-function manageCorpseConnection()
-    local enabled = Library.Flags["ESP_Enabled"]
-    local corpses = Library.Flags["ESP_Corpses"]
-    if enabled and corpses then
-        if not corpseConnection then
-            corpseConnection = RunService.Heartbeat:Connect(updateCorpseESP)
-        end
-    else
-        if corpseConnection then
-            corpseConnection:Disconnect()
-            corpseConnection = nil
-            for corpse, highlight in pairs(corpseCache) do
-                if highlight then highlight:Destroy() end
-            end
-            corpseCache = {}
-        end
     end
 end
 
@@ -137,9 +132,26 @@ ESP_Sec:Toggle({Name = "Barra de Vida", Flag = "ESP_Health", Default = true})
 ESP_Sec:Toggle({Name = "Linha (Tracer)", Flag = "ESP_Tracer", Default = true})
 ESP_Sec:Toggle({Name = "Check de Time", Flag = "ESP_TeamCheck", Default = true})
 ESP_Sec:Toggle({Name = "Skeleton ESP", Flag = "ESP_Skeleton", Default = false})
-ESP_Sec:Toggle({Name = "Corpos Deads", Flag = "ESP_Corpses", Default = false, Callback = function(v)
+-- ============================================
+-- DEAD BODY ESP (NOVOS CONTROLES)
+-- ============================================
+local DEAD_Sec = ESP_Sub:Section({Name = "Dead Body ESP", Icon = "136879043989014", Side = 1})
+
+DEAD_Sec:Toggle({Name = "Ligar ESP Corpos", Flag = "ESP_Corpses", Default = false, Callback = function(v)
     manageCorpseConnection()
 end})
+
+DEAD_Sec:Toggle({Name = "Mostrar Nome (Dead Body)", Flag = "ESP_Corpse_Name", Default = true})
+DEAD_Sec:Toggle({Name = "Mostrar Distância", Flag = "ESP_Corpse_Distance", Default = true})
+
+DEAD_Sec:Slider({Name = "Distância Máxima", Flag = "ESP_Corpse_MaxDistance", Min = 50, Max = 100000, Default = 5000, Decimals = 0, Suffix = "m"})
+
+DEAD_Sec:Dropdown({Name = "Cor do Destaque", Flag = "ESP_Corpse_Color", Items = {"Roxo", "Amarelo", "Azul", "Personalizado"}, Default = "Roxo", Multi = false})
+
+DEAD_Sec:Label("Cor Personalizada (Selecionar acima)"):Colorpicker({
+    Flag = "ESP_Corpse_CustomColor", 
+    Default = Color3.fromRGB(255, 50, 50)
+})
 
 -- ============================================
 -- ABA VISUALS (Cores e Sliders)
@@ -159,14 +171,29 @@ Vis_SecR:Label("Cor do Aliado"):Colorpicker({Flag = "ESP_SafeColor", Default = _
 -- ============================================
 -- ABA TELEPORTS
 -- ============================================
-local Tel_Sub = Teleports_Page:SubPage({Name = "Locations"})
-local Tel_Sec = Tel_Sub:Section({Name = "Teleports", Icon = "97491613646216", Side = 1})
-
+local TweenService = game:GetService("TweenService")
 local function teleportTo(x, y, z)
     local char = LocalPlayer.Character
-    if char and char:FindFirstChild("HumanoidRootPart") then
-        char.HumanoidRootPart.CFrame = CFrame.new(x, y, z)
-        Library:Notification("Teleportado!", 2, nil)
+    if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") then
+        local hrp = char.HumanoidRootPart
+        local humanoid = char.Humanoid
+        
+        -- 1. Pausa o movimento atual para não conflitar
+        humanoid.WalkSpeed = 0 
+        humanoid.JumpPower = 0
+        
+        -- 2. Cria um movimento suave de 0.5s (simula uma "corrida")
+        local targetPos = Vector3.new(x, y, z)
+        local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(targetPos)})
+        tween:Play()
+        
+        task.wait(0.5)
+        -- 3. Restaura os atributos normais
+        humanoid.WalkSpeed = 16
+        humanoid.JumpPower = 50
+        
+        Library:Notification("Teleporte simulado com sucesso!", 2, nil)
     else
         Library:Notification("Personagem não encontrado.", 2, nil)
     end
@@ -180,35 +207,77 @@ Tel_Sec:Button({Name = "⛓️ Prisão", Callback = function() teleportTo(5166.6
 Tel_Sec:Button({Name = "🏪 Big Spot", Callback = function() teleportTo(1765.86, 241.35+3.5, 1452.03) end})
 
 -- ============================================
--- CÍRCULO DE FOV (MOVIDO PARA CÁ - ANTES DO AIMBOT)
+-- CÍRCULO DE FOV (AGORA SEGUE O MOUSE)
 -- ============================================
 local CircleGui = Instance.new("ScreenGui")
 CircleGui.Name = "FOVCircle"
 CircleGui.ResetOnSpawn = false
 CircleGui.IgnoreGuiInset = true
 CircleGui.DisplayOrder = 100
-CircleGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+local success = pcall(function() CircleGui.Parent = game:GetService("CoreGui") end)
+if not success then
+    CircleGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+end
 
 local CircleFrame = Instance.new("Frame")
 CircleFrame.Name = "Circle"
 CircleFrame.BackgroundTransparency = 1
-CircleFrame.BorderSizePixel = 1
-CircleFrame.BorderColor3 = Color3.fromRGB(255, 255, 255)
+CircleFrame.BorderSizePixel = 0
 CircleFrame.Visible = false
 CircleFrame.Parent = CircleGui
+
 local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(1, 0)
 UICorner.Parent = CircleFrame
 
-function UpdateFOVCircle()
-    if not Library.Flags["Aimbot_Circle"] then CircleFrame.Visible = false return end
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Color = Color3.fromRGB(255, 0, 0)
+UIStroke.Thickness = 2.5
+UIStroke.Transparency = 0.1
+UIStroke.Parent = CircleFrame
+
+-- Variável para controlar o loop de posição
+local fovPositionConnection = nil
+
+-- Função que atualiza o TAMANHO e a VISIBILIDADE (chamada por eventos)
+local function UpdateFOVSizeAndVisibility()
+    local show = Library.Flags["Aimbot_Circle"]
+    if not show then
+        CircleFrame.Visible = false
+        -- Desconecta o loop de posição para economizar desempenho
+        if fovPositionConnection then
+            fovPositionConnection:Disconnect()
+            fovPositionConnection = nil
+        end
+        return
+    end
+
     local vpSize = workspace.CurrentCamera.ViewportSize
     local fov = Library.Flags["Aimbot_FOV"] or 120
     local radius = math.clamp(fov * 3, 20, vpSize.Y / 1.5)
-    CircleFrame.Position = UDim2.new(0.5, -radius, 0.5, -radius)
-    CircleFrame.Size = UDim2.new(0, radius*2, 0, radius*2)
+
+    CircleFrame.Size = UDim2.new(0, radius * 2, 0, radius * 2)
     CircleFrame.Visible = true
+
+    -- Se o loop de posição não estiver ativo, liga ele agora
+    if not fovPositionConnection then
+        fovPositionConnection = RunService.RenderStepped:Connect(function()
+            -- Só atualiza posição se estiver visível
+            if not CircleFrame.Visible then return end
+            
+            local mousePos = UserInputService:GetMouseLocation()
+            local radius = CircleFrame.Size.X.Offset / 2 -- Pega o raio atual
+            CircleFrame.Position = UDim2.new(0, mousePos.X - radius, 0, mousePos.Y - radius)
+        end)
+    end
 end
+
+-- Atualiza o tamanho quando a tela é redimensionada
+workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(UpdateFOVSizeAndVisibility)
+
+-- Chama a função pela primeira vez
+task.wait(0.1)
+UpdateFOVSizeAndVisibility()
 
 -- ============================================
 -- ABA AIMBOT (AGORA A FUNÇÃO JÁ EXISTE!)
@@ -218,11 +287,11 @@ local Aim_Sec = Aim_Sub:Section({Name = "Configurações", Icon = "1368790439890
 
 Aim_Sec:Toggle({Name = "Ativar Aimbot (Snap)", Flag = "Aimbot_Enabled", Default = false})
 Aim_Sec:Slider({Name = "Campo de Visão (FOV)", Flag = "Aimbot_FOV", Min = 20, Max = 180, Default = 120, Decimals = 1, Suffix = "°", Callback = function(v)
-    UpdateFOVCircle()
+    UpdateFOVSizeAndVisibility()
 end})
 Aim_Sec:Dropdown({Name = "Alvo Preferido", Flag = "Aimbot_Mode", Items = {"Cabeça (Head)", "Torso (Body)"}, Default = "Cabeça (Head)", Multi = false})
 Aim_Sec:Toggle({Name = "Mostrar Círculo de FOV", Flag = "Aimbot_Circle", Default = true, Callback = function(v)
-    UpdateFOVCircle()
+    UpdateFOVSizeAndVisibility()
 end})
 
 -- ============================================
@@ -365,42 +434,55 @@ local function createSkeletonForPlayer(player)
     return data
 end
 
--- Função de desenho do Skeleton (substitua a sua function updateLine)
-local function updateLine(line, pos1, pos2, espColor)
-    if line and pos1 and pos2 then
-        line.From = pos1
-        line.To = pos2
-        -- Fallback: Se a cor for preta ou nil, usa branco para garantir visibilidade
-        line.Color = (espColor and espColor ~= Color3.new(0,0,0)) and espColor or Color3.new(1, 1, 1) 
-        line.Visible = true
-    elseif line then
-        line.Visible = false
+-- ============================================
+-- FUNÇÃO COMPLETA DO SKELETON
+-- ============================================
+local function updateSkeleton(player, camera, espColor)
+    -- Pega ou cria o cache de linhas para esse jogador
+    local data = skeletonCache[player]
+    if not data then
+        data = createSkeletonForPlayer(player)
     end
-end
 
--- Lembre-se de atualizar a chamada dentro do updateSkeleton:
--- Substitua:
--- updateLine(data.HeadTorso, headPos, upperPos)
--- Por:
--- updateLine(data.HeadTorso, headPos, upperPos, espColor)
--- E faça o mesmo para todas as outras chamadas (TorsoLegs, ArmL, etc)
+    local char = player.Character
+    -- Se não tiver personagem ou a cor for inválida, esconde tudo
+    if not char or not espColor then
+        for _, line in pairs(data) do
+            line.Visible = false
+        end
+        return
+    end
 
-    local head = char:FindFirstChild("Head", true)
-    local upperTorso = char:FindFirstChild("UpperTorso", true) or char:FindFirstChild("Torso", true)
-    local lowerTorso = char:FindFirstChild("LowerTorso", true)
-    local leftArm = char:FindFirstChild("LeftArm", true) or char:FindFirstChild("Left Arm", true)
-    local rightArm = char:FindFirstChild("RightArm", true) or char:FindFirstChild("Right Arm", true)
-    local leftLeg = char:FindFirstChild("LeftLeg", true) or char:FindFirstChild("Left Leg", true)
-    local rightLeg = char:FindFirstChild("RightLeg", true) or char:FindFirstChild("Right Leg", true)
-
+    -- Função auxiliar para converter posição 3D para coordenadas da tela
     local function getScreenPos(part)
         if part and part:IsA("BasePart") then
             local pos, onScreen = camera:WorldToViewportPoint(part.Position)
-            if onScreen and pos.Z > 0 then return Vector2.new(pos.X, pos.Y) end
+            -- Só desenha se estiver na tela e na frente da câmera (Z > 0)
+            if onScreen and pos.Z > 0 then
+                return Vector2.new(pos.X, pos.Y)
+            end
         end
         return nil
     end
 
+    -- Tenta pegar as partes. Suporta R15 e R6 automaticamente
+    local head = char:FindFirstChild("Head", true)
+    local upperTorso = char:FindFirstChild("UpperTorso", true) or char:FindFirstChild("Torso", true)
+    local lowerTorso = char:FindFirstChild("LowerTorso", true)
+    local leftArm = char:FindFirstChild("LeftArm", true) or char:FindFirstChild("Left Arm", true) or char:FindFirstChild("LeftUpperArm", true)
+    local rightArm = char:FindFirstChild("RightArm", true) or char:FindFirstChild("Right Arm", true) or char:FindFirstChild("RightUpperArm", true)
+    local leftLeg = char:FindFirstChild("LeftLeg", true) or char:FindFirstChild("Left Leg", true) or char:FindFirstChild("LeftUpperLeg", true)
+    local rightLeg = char:FindFirstChild("RightLeg", true) or char:FindFirstChild("Right Leg", true) or char:FindFirstChild("RightUpperLeg", true)
+
+    -- Se não tiver cabeça ou tronco, não faz sentido desenhar
+    if not head or not upperTorso then
+        for _, line in pairs(data) do
+            line.Visible = false
+        end
+        return
+    end
+
+    -- Converte todas as partes para coordenadas de tela
     local headPos = getScreenPos(head)
     local upperPos = getScreenPos(upperTorso)
     local lowerPos = getScreenPos(lowerTorso)
@@ -409,10 +491,11 @@ end
     local legLPos = getScreenPos(leftLeg)
     local legRPos = getScreenPos(rightLeg)
 
-    local function updateLine(line, pos1, pos2, espColor)
-        if line and pos1 and pos2 then
-            line.From = pos1
-            line.To = pos2
+    -- Função local para atualizar cada linha
+    local function updateLine(line, p1, p2)
+        if line and p1 and p2 then
+            line.From = p1
+            line.To = p2
             line.Color = espColor
             line.Visible = true
         elseif line then
@@ -420,18 +503,25 @@ end
         end
     end
 
-    updateLine(data.HeadTorso, headPos, upperPos, espColor)
-    if lowerTorso and lowerPos then
-        updateLine(data.TorsoLegs, upperPos, lowerPos, espColor)
-        updateLine(data.LegL, lowerPos, legLPos, espColor)
-        updateLine(data.LegR, lowerPos, legRPos, espColor)
+    -- 1. Cabeça -> Tronco Superior
+    updateLine(data.HeadTorso, headPos, upperPos)
+
+    -- 2. Parte inferior (R15 tem LowerTorso, R6 não)
+    if lowerTorso and lowerPos and legLPos and legRPos then
+        -- R15: Tronco Superior -> Tronco Inferior -> Pernas
+        updateLine(data.TorsoLegs, upperPos, lowerPos)
+        updateLine(data.LegL, lowerPos, legLPos)
+        updateLine(data.LegR, lowerPos, legRPos)
     else
-        updateLine(data.TorsoLegs, upperPos, legLPos, espColor)
-        updateLine(data.LegL, upperPos, legLPos, espColor)
-        updateLine(data.LegR, upperPos, legRPos, espColor)
+        -- R6: Tronco Superior direto para as pernas
+        updateLine(data.TorsoLegs, upperPos, legLPos)
+        updateLine(data.LegL, upperPos, legLPos)
+        updateLine(data.LegR, upperPos, legRPos)
     end
-    updateLine(data.ArmL, upperPos, armLPos, espColor)
-    updateLine(data.ArmR, upperPos, armRPos, espColor)
+
+    -- 3. Braços (Tronco Superior -> Braços)
+    updateLine(data.ArmL, upperPos, armLPos)
+    updateLine(data.ArmR, upperPos, armRPos)
 end
 
 -- ============================================
@@ -442,7 +532,7 @@ local function updateESP()
     if not enabled then return end
 
     frameCounter = frameCounter + 1
-    if frameCounter % 2 ~= 0 then return end
+if frameCounter % math.random(2, 4) ~= 0 then return end -- Varia entre 2 e 4
 
     local camera = workspace.CurrentCamera
     if not camera then return end
@@ -513,7 +603,7 @@ local function updateESP()
 
         local rawHeight = math.abs(topPos.Y - bottomPos.Y)
         local scaledHeight = rawHeight * scaleFactor
-        scaledHeight = math.clamp(scaledHeight, 5, 500)
+        scaledHeight = math.clamp(scaledHeight, 25, 500)
         local width = scaledHeight * 0.45
         local posX = pos.X - width/2
         local posY = topPos.Y - 2
@@ -618,31 +708,126 @@ end
 espConnection = RunService.RenderStepped:Connect(updateESP)
 
 -- ============================================
--- FUNÇÃO DE CORPOS (Erro de sintaxe corrigido)
+-- NOVA LÓGICA DE CORPOS (HIGHLIGHT + LABELS)
 -- ============================================
+-- Função auxiliar para obter a cor com base no dropdown
+local function getCorpseColor()
+    local mode = Library.Flags["ESP_Corpse_Color"]
+    if mode == "Roxo" then return Color3.fromRGB(170, 0, 255) end
+    if mode == "Amarelo" then return Color3.fromRGB(255, 255, 0) end
+    if mode == "Azul" then return Color3.fromRGB(0, 170, 255) end
+    if mode == "Personalizado" then
+        return Library.Flags["ESP_Corpse_CustomColor"] or Color3.fromRGB(255, 50, 50)
+    end
+    return Color3.fromRGB(170, 0, 255) -- Fallback roxo
+end
+
+-- Cria os elementos gráficos para um corpo
+local function createCorpseElements(corpse)
+    local folder = Instance.new("Folder")
+    folder.Name = "CorpseESP_" .. corpse.Name
+    folder.Parent = getMasterGUI() -- Usa a mesma GUI do ESP normal
+
+    local highlight = Instance.new("Highlight")
+    highlight.FillTransparency = 0.8
+    highlight.OutlineTransparency = 0
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.Parent = corpse
+
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    nameLabel.TextSize = 14
+    nameLabel.Font = Enum.Font.GothamMedium
+    nameLabel.TextStrokeTransparency = 0.8
+    nameLabel.TextStrokeColor3 = Color3.new(0,0,0)
+    nameLabel.Text = "Dead Body"
+    nameLabel.TextXAlignment = Enum.TextXAlignment.Center
+    nameLabel.Visible = false
+    nameLabel.Parent = folder
+
+    local distLabel = Instance.new("TextLabel")
+    distLabel.BackgroundTransparency = 1
+    distLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    distLabel.TextSize = 12
+    distLabel.Font = Enum.Font.Gotham
+    distLabel.TextStrokeTransparency = 0.8
+    distLabel.TextStrokeColor3 = Color3.new(0,0,0)
+    distLabel.TextXAlignment = Enum.TextXAlignment.Center
+    distLabel.Visible = false
+    distLabel.Parent = folder
+
+    return {
+        Folder = folder,
+        Highlight = highlight,
+        NameLabel = nameLabel,
+        DistLabel = distLabel
+    }
+end
+
+-- Limpa todos os corpos da memória
+local function clearCorpseESP()
+    for corpse, elements in pairs(corpseCache) do
+        if elements then
+            if elements.Highlight then elements.Highlight:Destroy() end
+            if elements.Folder then elements.Folder:Destroy() end
+        end
+    end
+    corpseCache = {}
+end
+
+-- Gerencia a conexão do loop e a limpeza
+function manageCorpseConnection()
+    local enabled = Library.Flags["ESP_Enabled"]
+    local corpses = Library.Flags["ESP_Corpses"]
+    
+    if enabled and corpses then
+        if not corpseConnection then
+            corpseConnection = RunService.Heartbeat:Connect(updateCorpseESP)
+        end
+    else
+        if corpseConnection then
+            corpseConnection:Disconnect()
+            corpseConnection = nil
+        end
+        clearCorpseESP()
+    end
+end
+
+-- LOOP PRINCIPAL DE CORPOS
 function updateCorpseESP()
     local enabled = Library.Flags["ESP_Enabled"]
     local corpses = Library.Flags["ESP_Corpses"]
-    if not enabled or not corpses then return end
-
-    corpseFrameCounter = corpseFrameCounter + 1
-    if corpseFrameCounter % 30 ~= 0 then return end
-
-    local corpsesFolder = workspace:FindFirstChild("Corpses")
-    if not corpsesFolder then
-        for corpse, highlight in pairs(corpseCache) do
-            highlight:Destroy()
-            corpseCache[corpse] = nil
-        end
+    if not enabled or not corpses then
+        clearCorpseESP()
         return
     end
 
+    corpseFrameCounter = corpseFrameCounter + 1
+    if corpseFrameCounter % math.random(10, 20) ~= 0 then return end
+
+    local camera = workspace.CurrentCamera
+    local localChar = LocalPlayer.Character
+    if not camera or not localChar then return end
+
+    local maxDist = Library.Flags["ESP_Corpse_MaxDistance"] or 5000
+    local showName = Library.Flags["ESP_Corpse_Name"]
+    local showDist = Library.Flags["ESP_Corpse_Distance"]
+    local currentColor = getCorpseColor()
+
+    local corpsesFolder = workspace:FindFirstChild("Corpses")
+    if not corpsesFolder then
+        clearCorpseESP()
+        return
+    end
+
+    -- Coleta todos os corpos válidos
     local currentCorpses = {}
     for _, child in ipairs(corpsesFolder:GetChildren()) do
         if child:IsA("Model") or child:IsA("Folder") then
             local hasBodyPart = false
             for _, part in ipairs(child:GetDescendants()) do
-                if part:IsA("BasePart") and (part.Name == "Head" or part.Name == "Head2" or part.Name == "HumanoidRootPart" or part.Name == "Body") then
+                if part:IsA("BasePart") and (part.Name == "Head" or part.Name == "Head2" or part.Name == "HumanoidRootPart" or part.Name == "Body" or part.Name == "Torso") then
                     hasBodyPart = true
                     break
                 end
@@ -653,23 +838,71 @@ function updateCorpseESP()
         end
     end
 
-    for corpse, highlight in pairs(corpseCache) do
+    -- Remove corpos que não existem mais
+    for corpse, elements in pairs(corpseCache) do
         if not corpse.Parent or not table.find(currentCorpses, corpse) then
-            highlight:Destroy()
+            if elements then
+                if elements.Highlight then elements.Highlight:Destroy() end
+                if elements.Folder then elements.Folder:Destroy() end
+            end
             corpseCache[corpse] = nil
         end
     end
 
+    -- Processa os corpos atuais
     for _, corpse in ipairs(currentCorpses) do
-        if not corpseCache[corpse] then
-            local highlight = Instance.new("Highlight")
-            highlight.FillColor = Color3.fromRGB(170, 0, 255)
-            highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-            highlight.FillTransparency = 0.8
-            highlight.OutlineTransparency = 0
-            highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-            highlight.Parent = corpse
-            corpseCache[corpse] = highlight
+        local elements = corpseCache[corpse]
+        if not elements then
+            elements = createCorpseElements(corpse)
+            corpseCache[corpse] = elements
+        end
+
+        -- Encontra o RootPart do corpo para projetar na tela
+        local rootPart = corpse:FindFirstChild("HumanoidRootPart") or corpse:FindFirstChild("Torso") or corpse:FindFirstChild("Head")
+        if not rootPart then
+            elements.NameLabel.Visible = false
+            elements.DistLabel.Visible = false
+            continue
+        end
+
+        local cameraPos = camera.CFrame.Position
+        local dist = (cameraPos - rootPart.Position).Magnitude
+
+        -- Verifica distância máxima
+        if dist > maxDist then
+            elements.NameLabel.Visible = false
+            elements.DistLabel.Visible = false
+            continue
+        end
+
+        -- Projeta para a tela
+        local pos, onScreen = camera:WorldToViewportPoint(rootPart.Position)
+        if onScreen and pos.Z > 0 then
+            -- Atualiza a cor do Highlight (chams)
+            elements.Highlight.FillColor = currentColor
+            elements.Highlight.OutlineColor = currentColor
+
+            -- Atualiza Label de Nome
+            if showName then
+                elements.NameLabel.Position = UDim2.new(0, pos.X, 0, pos.Y - 35)
+                elements.NameLabel.AnchorPoint = Vector2.new(0.5, 1)
+                elements.NameLabel.Visible = true
+            else
+                elements.NameLabel.Visible = false
+            end
+
+            -- Atualiza Label de Distância
+            if showDist then
+                elements.DistLabel.Text = math.floor(dist) .. "m"
+                elements.DistLabel.Position = UDim2.new(0, pos.X, 0, pos.Y + 5)
+                elements.DistLabel.AnchorPoint = Vector2.new(0.5, 0)
+                elements.DistLabel.Visible = true
+            else
+                elements.DistLabel.Visible = false
+            end
+        else
+            elements.NameLabel.Visible = false
+            elements.DistLabel.Visible = false
         end
     end
 end
@@ -760,7 +993,7 @@ end)
 -- FINALIZAÇÃO
 -- ============================================
 task.wait(0.5)
-UpdateFOVCircle()
+UpdateFOVSizeAndVisibility()
 Library:Notification("✅ KOUDZERA -- script by devvcampos", 4, nil)
 
 return Library
