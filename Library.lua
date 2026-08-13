@@ -1,3 +1,6 @@
+-- =========================================================
+-- SUA LIBRARY (Cole todo o código que você mandou aqui)
+-- =========================================================
 if getgenv().Library then
     getgenv().Library:Unload()
 end
@@ -3948,3 +3951,53 @@ end -- Fim do bloco da Biblioteca
 
 getgenv().Library = Library
 return Library
+
+-- =========================================================
+-- SEU PAINEL PRONTO (Usando a Library)
+-- =========================================================
+
+local Window = Library:Window({
+    Name = "Meu Painel",
+    SubTitle = "Projeto Bypass",
+    ExpiresIn = "Lifetime"
+})
+
+-- Cria uma página
+local MainPage = Window:Page({
+    Name = "Principal",
+    Icon = "136879043989014" -- Ícone opcional
+})
+
+-- Cria uma seção dentro da página
+local MainSection = MainPage:Section({
+    Name = "Opções Gerais",
+    Side = 1
+})
+
+-- Adiciona um Toggle (Lig/Desl) para sua função
+local ToggleSpeed = MainSection:Toggle({
+    Name = "Bypass de Velocidade",
+    Default = false,
+    Flag = "SpeedBypass",
+    Callback = function(value)
+        if value then
+            print("[INFO] Ativando hook de velocidade...")
+            -- Aqui você chama sua função de hooking (próximo passo)
+        else
+            print("[INFO] Desativado.")
+        end
+    end
+})
+
+-- Adiciona um Slider (Exemplo)
+local SliderSpeed = MainSection:Slider({
+    Name = "Velocidade Máxima",
+    Min = 16,
+    Max = 100,
+    Default = 50,
+    Suffix = "s",
+    Flag = "MaxSpeed",
+    Callback = function(value)
+        -- Lógica para alterar a velocidade via hook
+    end
+})
