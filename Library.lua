@@ -1,7 +1,3 @@
--- made by samet (joestar._3 on discord)
--- https://discord.gg/VhvTd5HV8d
--- NO DEMO (Clean Version)
-
 if getgenv().Library then
     getgenv().Library:Unload()
 end
